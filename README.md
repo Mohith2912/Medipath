@@ -6,13 +6,14 @@
 
 A multi-hospital healthcare coordination prototype connecting patients, hospital teams, blood-donor volunteers, and ambulance partners through role-specific experiences.
 
-*Prototype · Healthcare coordination · Multi-hospital access · Human-supervised workflows*
+Prototype · Healthcare coordination · Multi-hospital access · Human-supervised workflows
 
-*Problem · Solution · Experiences · Workflows · Roadmap*
+[Problem](#the-problem) · [Solution](#the-solution) · [Experiences](#the-medipath-experience) · [Workflows](#how-it-works) · [Roadmap](#development-roadmap)
 
 </div>
 
-Medipath is a prototype, not an operational emergency service or a clinically validated medical product. The sections below describe the intended experience and development direction; they are not a claim that every integration or safeguard is already implemented.
+> [!NOTE]
+> Medipath is a prototype, not an operational emergency service or a clinically validated medical product. The sections below describe the intended experience and development direction; they are not a claim that every integration or safeguard is already implemented.
 
 ## Overview
 
@@ -90,7 +91,8 @@ The donor concept focuses on verified requests and voluntary participation:
 - Coordinate an appointment at an authorised collection location.
 - Keep contact information and assessment outcomes private.
 
-A volunteer response is not a confirmation of donor eligibility, available blood stock, or transfusion compatibility.
+> [!IMPORTANT]
+> A volunteer response is not a confirmation of donor eligibility, available blood stock, or transfusion compatibility.
 
 ### Ambulance-Driver Experience
 
@@ -102,24 +104,20 @@ The ambulance concept is intended for verified operators with supervised dispatc
 - Pickup address, landmark, and navigation support.
 - Arrival, transport, and receiving-hospital handoff updates.
 
-An SOS submission does not mean an ambulance has accepted. Free-to-patient transport is a funding and partnership goal—not an established service commitment.
+> [!IMPORTANT]
+> An SOS submission does not mean an ambulance has accepted. Free-to-patient transport is a funding and partnership goal—not an established service commitment.
 
 ## How It Works
 
 ### Primary Prototype Journey
 
-```text
-Hospital publishes a consultation session
-                    |
-Patient discovers the participating hospital
-                    |
-Patient submits a consultation request
-                    |
-Hospital confirms or proposes an alternative
-                    |
-Patient receives the confirmed booking status
-                    |
-Check-in and queue updates follow the visit
+```mermaid
+flowchart TB
+    A[Hospital publishes a consultation session] --> B[Patient discovers the participating hospital]
+    B --> C[Patient submits a consultation request]
+    C --> D[Hospital confirms or proposes an alternative]
+    D --> E[Patient receives the confirmed booking status]
+    E --> F[Check-in and queue updates follow the visit]
 ```
 
 This connected hospital-to-patient loop is the recommended first implementation milestone.
@@ -147,7 +145,7 @@ Published capacity should include its source and confirmation time. A capacity l
 
 These modes describe operating load. Emergency-receiving capability, doctor duty, and staffed bed readiness must remain separate fields.
 
-## What Medipath Aims to Demonstrate
+### What Medipath Aims to Demonstrate
 
 Medipath's proposed distinction is not simply the number of healthcare features it combines. It is the connection between information quality and an accountable next action.
 
