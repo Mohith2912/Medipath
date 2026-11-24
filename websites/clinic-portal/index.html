@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3f7fc">
+    <meta name="description" content="MediPath clinic workspace demo for daily coordination.">
+    <title>Clinic workspace · MediPath</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Clinic navigation">
+        <a class="brand" href="#" aria-label="MediPath clinic workspace home" data-view="overview">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 4.5v23M4.5 16h23" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="16" cy="16" r="13.2" stroke="currentColor" stroke-width="1.6"/></svg>
+          </span>
+          <span class="brand-name">MediPath<span>CLINIC WORKSPACE</span></span>
+        </a>
+        <div class="branch-switcher">
+          <span class="branch-avatar" aria-hidden="true">MC</span>
+          <span class="branch-copy"><strong>MediPath Clinic</strong><small>Main branch · Demo</small></span>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </div>
+        <nav class="primary-nav" aria-label="Workspace sections">
+          <p class="nav-label">WORKSPACE</p>
+          <button class="nav-item is-active" data-view="overview"><span class="nav-icon" data-icon="overview"></span><span>Overview</span></button>
+          <button class="nav-item" data-view="appointments"><span class="nav-icon" data-icon="calendar"></span><span>Appointments</span><span class="nav-count">4</span></button>
+          <button class="nav-item" data-view="queue"><span class="nav-icon" data-icon="queue"></span><span>Queue</span></button>
+          <button class="nav-item" data-view="schedules"><span class="nav-icon" data-icon="schedule"></span><span>Doctors &amp; schedules</span></button>
+          <button class="nav-item" data-view="patients"><span class="nav-icon" data-icon="patients"></span><span>Patients</span></button>
+          <button class="nav-item" data-view="services"><span class="nav-icon" data-icon="services"></span><span>Services &amp; availability</span><span class="nav-alert" aria-label="Needs review"></span></button>
+          <button class="nav-item" data-view="diagnostics"><span class="nav-icon" data-icon="diagnostics"></span><span>Diagnostics</span></button>
+          <button class="nav-item" data-view="followups"><span class="nav-icon" data-icon="followup"></span><span>Referrals &amp; follow-ups</span></button>
+          <p class="nav-label nav-label-spaced">MANAGE</p>
+          <button class="nav-item" data-view="partners"><span class="nav-icon" data-icon="partners"></span><span>Enabled partner modules</span></button>
+          <button class="nav-item" data-view="settings"><span class="nav-icon" data-icon="settings"></span><span>Staff &amp; settings</span></button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <span class="help-icon" aria-hidden="true">?</span>
+            <span><strong>Need a hand?</strong><small>Workspace guide</small></span>
+            <span class="help-arrow" aria-hidden="true">↗</span>
+          </div>
+          <button class="profile-button" type="button" aria-label="Staff profile" data-action="staff-profile">
+            <span class="profile-avatar">ST</span>
+            <span class="profile-copy"><strong>Clinic staff</strong><small>Reception role</small></span>
+            <span class="more-dots" aria-hidden="true">•••</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="page-column">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="menu-button" aria-label="Open navigation" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div class="breadcrumb"><span>Clinic workspace</span><span class="crumb-separator">/</span><strong id="current-section">Overview</strong></div>
+          <div class="topbar-tools">
+            <span class="demo-label"><span></span> Demo workspace</span>
+            <label class="global-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.4 4.4"/></svg>
+              <input id="global-search" type="search" placeholder="Search this page" aria-label="Search current page">
+              <kbd>/</kbd>
+            </label>
+            <button class="icon-button notification-button" type="button" aria-label="Notifications, 2 updates" data-action="notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+          </div>
+        </header>
+        <main class="main-content" id="main-content" tabindex="-1"></main>
+      </div>
+      <div class="sidebar-scrim" id="sidebar-scrim"></div>
+    </div>
+    <div id="overlay-root"></div>
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>
