@@ -9,8 +9,10 @@ import {
   ListOrdered,
   Menu,
   MessageSquareText,
+  Moon,
   Plus,
   Search,
+  Sun,
   X,
 } from "lucide-react";
 import {
@@ -42,6 +44,15 @@ type Overlay =
   | { kind: "info"; title: string; body: string; result: string }
   | null;
 type ActionId = "patient-info" | "diagnostics-info" | "partner-info" | "settings-help";
+type Theme = "light" | "dark";
+
+const themeStorageKey = "medipath-clinic-theme";
+
+function getInitialTheme(): Theme {
+  const savedTheme = window.localStorage.getItem(themeStorageKey);
+  if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
 
 const todayLabel = new Intl.DateTimeFormat("en", {
   weekday: "long",
@@ -426,6 +437,7 @@ function AvailabilityEditor({
 
 function App() {
   const [view, setView] = useState<ViewId>("overview");
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [availability, setAvailability] = useState<AvailabilityItem[]>(initialAvailability);
   const [queue, setQueue] = useState<QueueItem[]>(initialQueue);
@@ -443,6 +455,14 @@ function App() {
   const searchRef = useRef<HTMLInputElement>(null);
   const loadingPreviewTimeout = useRef<number | null>(null);
   const closeOverlay = useCallback(() => setOverlay(null), []);
+
+  useEffect(() => {
+    window.localStorage.setItem(themeStorageKey, theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      "content",
+      theme === "dark" ? "#0c1723" : "#edf5ff",
+    );
+  }, [theme]);
 
   const currentTitle = navItems.find((item) => item.id === view)?.label ?? "Overview";
   const pendingAppointments = appointments.filter((item) => item.type === "pending");
@@ -1006,12 +1026,12 @@ function App() {
   }
 
   return (
-    <>
+    <div className="portal-root" data-theme={theme} style={{ colorScheme: theme }}>
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="app-shell">
         <aside className={`sidebar${mobileNavOpen ? " is-open" : ""}`} aria-label="Clinic navigation">
           <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="MediPath clinic workspace home">
-            <span className="brand-mark" aria-hidden="true"><HeartPulse /></span>
+            <span className="brand-mark" aria-hidden="true"><img src="/medipath-logo.png" alt="" /></span>
             <span className="brand-name">MediPath<span>CLINIC WORKSPACE</span></span>
           </a>
           <div className="branch-switcher">
@@ -1054,6 +1074,14 @@ function App() {
                 <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" aria-label="Search current page" />
                 <kbd>/</kbd>
               </label>
+              <IconButton
+                className="theme-toggle"
+                label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+                aria-pressed={theme === "dark"}
+                onClick={() => setTheme((current) => current === "light" ? "dark" : "light")}
+              >
+                {theme === "light" ? <Moon /> : <Sun />}
+              </IconButton>
             </div>
           </header>
           <main className="main-content" id="main-content" tabIndex={-1} ref={mainRef}>
@@ -1066,7 +1094,7 @@ function App() {
       <div className="toast-region" aria-live="polite" aria-atomic="true">
         {toast && <div className={`toast${toast.tone === "info" ? " toast-info" : ""}`} role="status">{toast.text}</div>}
       </div>
-    </>
+    </div>
   );
 }
 
