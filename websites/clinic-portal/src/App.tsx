@@ -1030,13 +1030,16 @@ function App() {
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="app-shell">
         <aside className={`sidebar${mobileNavOpen ? " is-open" : ""}`} aria-label="Clinic navigation">
-          <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="MediPath clinic workspace home">
+          <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="Clinic workspace home">
             <span className="brand-mark" aria-hidden="true"><img src="/medipath-logo.png" alt="" /></span>
-            <span className="brand-name">MediPath<span>CLINIC WORKSPACE</span></span>
+            <span className="brand-wordmark">
+              <img src="/medipath-wordmark.png" alt="" />
+              <span>CLINIC WORKSPACE</span>
+            </span>
           </a>
           <div className="branch-switcher">
             <span className="branch-avatar" aria-hidden="true">MC</span>
-            <span className="branch-copy"><strong>MediPath Clinic</strong><small>Main branch · Demo</small></span>
+            <span className="branch-copy"><strong>Clinic workspace</strong><small>Main branch · Demo</small></span>
           </div>
           <nav className="primary-nav" aria-label="Workspace sections">
             <p className="nav-label">WORKSPACE</p>
