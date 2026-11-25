@@ -39,6 +39,7 @@ export type StatusKind =
 
 export interface Appointment {
   id: string;
+  date: string;
   patient: string;
   service: string;
   clinician: string;
@@ -47,6 +48,15 @@ export interface Appointment {
   updated: string;
   type: StatusKind;
 }
+
+export function getLocalDateValue(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+const today = getLocalDateValue();
 
 export interface AvailabilityItem {
   service: string;
@@ -92,16 +102,16 @@ export const navItems: NavItem[] = [
 ];
 
 export const initialAppointments: Appointment[] = [
-  { id: "MP-2048", patient: "Patient •••• 2841", service: "General consultation", clinician: "General medicine", time: "09:30", status: "Awaiting confirmation", updated: "8 min ago", type: "pending" },
-  { id: "MP-2047", patient: "Patient •••• 1093", service: "Follow-up visit", clinician: "General medicine", time: "10:00", status: "Confirmed", updated: "22 min ago", type: "confirmed" },
-  { id: "MP-2046", patient: "Patient •••• 6380", service: "Blood pressure review", clinician: "Nursing desk", time: "10:30", status: "Confirmed", updated: "34 min ago", type: "confirmed" },
-  { id: "MP-2045", patient: "Patient •••• 7152", service: "General consultation", clinician: "General medicine", time: "11:15", status: "Awaiting confirmation", updated: "51 min ago", type: "pending" },
+  { id: "MP-2048", date: today, patient: "Patient •••• 2841", service: "General consultation", clinician: "General medicine", time: "09:30", status: "Awaiting confirmation", updated: "8 min ago", type: "pending" },
+  { id: "MP-2047", date: today, patient: "Patient •••• 1093", service: "Follow-up visit", clinician: "General medicine", time: "10:00", status: "Confirmed", updated: "22 min ago", type: "confirmed" },
+  { id: "MP-2046", date: today, patient: "Patient •••• 6380", service: "Blood pressure review", clinician: "Nursing desk", time: "10:30", status: "Confirmed", updated: "34 min ago", type: "confirmed" },
+  { id: "MP-2045", date: today, patient: "Patient •••• 7152", service: "General consultation", clinician: "General medicine", time: "11:15", status: "Awaiting confirmation", updated: "51 min ago", type: "pending" },
 ];
 
 export const sessions = [
-  { time: "09:00", service: "General medicine", detail: "Consultation session", count: "4 bookings" },
-  { time: "11:30", service: "Nursing desk", detail: "Vitals & review", count: "3 bookings" },
-  { time: "14:00", service: "General medicine", detail: "Afternoon session", count: "6 bookings" },
+  { time: "09:00", service: "General medicine", detail: "Consultation session" },
+  { time: "11:30", service: "Nursing desk", detail: "Vitals & review" },
+  { time: "14:00", service: "General medicine", detail: "Afternoon session" },
 ];
 
 export const initialFollowups: FollowupItem[] = [
@@ -131,10 +141,10 @@ export const patientRows = [
 ];
 
 export const scheduleRows = [
-  { time: "09:00 – 11:30", service: "General medicine", type: "Consultation session", capacity: "6 / 8 slots", status: "Current", kind: "current" as const },
-  { time: "11:30 – 13:00", service: "Nursing desk", type: "Vitals & review", capacity: "3 / 5 slots", status: "Current", kind: "current" as const },
-  { time: "14:00 – 17:00", service: "General medicine", type: "Consultation session", capacity: "6 / 8 slots", status: "Current", kind: "current" as const },
-  { time: "Wed · 10:00 – 12:00", service: "Visiting specialist", type: "Schedule needs confirmation", capacity: "Not published", status: "Needs review", kind: "review" as const },
+  { time: "09:00 – 11:30", service: "General medicine", type: "Consultation session", status: "Current", kind: "current" as const },
+  { time: "11:30 – 13:00", service: "Nursing desk", type: "Vitals & review", status: "Current", kind: "current" as const },
+  { time: "14:00 – 17:00", service: "General medicine", type: "Consultation session", status: "Current", kind: "current" as const },
+  { time: "Wed · 10:00 – 12:00", service: "Visiting specialist", type: "Schedule needs confirmation", status: "Needs review", kind: "review" as const },
 ];
 
 export const diagnosticRows = [
