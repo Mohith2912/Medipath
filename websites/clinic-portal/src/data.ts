@@ -3,6 +3,11 @@ import {
   CalendarDays,
   FlaskConical,
   Handshake,
+  ReceiptText,
+  CalendarClock,
+  ChartNoAxesCombined,
+  UserRoundCog,
+  ClipboardList,
   LayoutDashboard,
   ListOrdered,
   MessageSquareText,
@@ -22,7 +27,12 @@ export type ViewId =
   | "diagnostics"
   | "followups"
   | "partners"
-  | "settings";
+  | "settings"
+  | "billing"
+  | "availability"
+  | "reports"
+  | "staff"
+  | "notes";
 
 export type StatusKind =
   | "pending"
@@ -99,6 +109,23 @@ export const navItems: NavItem[] = [
   { id: "followups", label: "Referrals & follow-ups", icon: MessageSquareText },
   { id: "partners", label: "Enabled partner modules", icon: Handshake },
   { id: "settings", label: "Staff & settings", icon: Settings },
+  { id: "billing", label: "Payments & receipts", icon: ReceiptText },
+  { id: "availability", label: "Doctor availability", icon: CalendarClock },
+  { id: "reports", label: "Reports", icon: ChartNoAxesCombined },
+  { id: "staff", label: "Doctors & staff", icon: UserRoundCog },
+  { id: "notes", label: "Visit notes", icon: ClipboardList },
+];
+
+export const doctors = [
+  { name: "Dr. Maya Chen", specialty: "General medicine", initials: "MC", color: "blue" },
+  { name: "Dr. Arjun Rao", specialty: "Family medicine", initials: "AR", color: "teal" },
+  { name: "Dr. Leena Patel", specialty: "Cardiology", initials: "LP", color: "violet" },
+];
+
+export const paymentRows = [
+  { id: "RC-1042", patient: "Patient •••• 1093", service: "Follow-up visit", amount: 850, method: "Cash", status: "Paid", kind: "completed" as const, date: today },
+  { id: "RC-1041", patient: "Patient •••• 6380", service: "Blood pressure review", amount: 500, method: "Card", status: "Paid", kind: "completed" as const, date: today },
+  { id: "RC-1040", patient: "Patient •••• 2841", service: "General consultation", amount: 700, method: "—", status: "Due", kind: "pending" as const, date: today },
 ];
 
 export const initialAppointments: Appointment[] = [
@@ -141,10 +168,10 @@ export const patientRows = [
 ];
 
 export const scheduleRows = [
-  { time: "09:00 – 11:30", service: "General medicine", type: "Consultation session", status: "Current", kind: "current" as const },
-  { time: "11:30 – 13:00", service: "Nursing desk", type: "Vitals & review", status: "Current", kind: "current" as const },
-  { time: "14:00 – 17:00", service: "General medicine", type: "Consultation session", status: "Current", kind: "current" as const },
-  { time: "Wed · 10:00 – 12:00", service: "Visiting specialist", type: "Schedule needs confirmation", status: "Needs review", kind: "review" as const },
+  { time: "09:00 – 11:30", doctor: "Dr. Maya Chen", service: "General medicine", type: "Consultation session", status: "Current", kind: "current" as const },
+  { time: "11:30 – 13:00", doctor: "Clinic nursing team", service: "Nursing desk", type: "Vitals & review", status: "Current", kind: "current" as const },
+  { time: "14:00 – 17:00", doctor: "Dr. Arjun Rao", service: "Family medicine", type: "Consultation session", status: "Current", kind: "current" as const },
+  { time: "Wed · 10:00 – 12:00", doctor: "Dr. Leena Patel", service: "Cardiology", type: "Schedule needs confirmation", status: "Needs review", kind: "review" as const },
 ];
 
 export const diagnosticRows = [

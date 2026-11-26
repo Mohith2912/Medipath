@@ -1,22 +1,36 @@
+"use client";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, FormEvent, ReactNode, RefObject } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   ArrowUpRight,
+  Bell,
+  CalendarClock,
   CalendarDays,
   Check,
+  CheckCircle2,
   Clock3,
   HeartPulse,
   ListOrdered,
+  LogOut,
   Menu,
   MessageSquareText,
   Moon,
   Plus,
+  Printer,
+  ReceiptText,
   Search,
+  Stethoscope,
   Sun,
+  UserRound,
   X,
 } from "lucide-react";
 import {
   diagnosticRows,
+  doctors,
   getLocalDateValue,
   initialAppointments,
   initialAvailability,
@@ -25,6 +39,7 @@ import {
   navItems,
   partnerRows,
   patientRows,
+  paymentRows as initialPaymentRows,
   scheduleRows,
   sessions,
 } from "./data";
@@ -41,17 +56,84 @@ type Overlay =
   | { kind: "appointment"; id: string }
   | { kind: "availability"; serviceIndex: number }
   | { kind: "new-request" }
+  | { kind: "booking" }
+  | { kind: "payment"; id: string }
+  | { kind: "receipt"; id: string }
   | { kind: "info"; title: string; body: string; result: string }
   | null;
 type ActionId = "patient-info" | "diagnostics-info" | "partner-info" | "settings-help";
 type Theme = "light" | "dark";
+type WorkspaceRole = "admin" | "doctor" | "front-desk";
+type PaymentRecord = typeof initialPaymentRows[number];
 
 const themeStorageKey = "medipath-clinic-theme";
+const roleLabels: Record<WorkspaceRole, string> = {
+  admin: "Clinic admin",
+  doctor: "Doctor",
+  "front-desk": "Front desk",
+};
+const appointmentBookingSchema = z.object({
+  patient: z.string().min(1, "Choose a patient record to continue."),
+  service: z.string().min(1, "Choose a visit type."),
+  clinician: z.string().min(1, "Choose a doctor."),
+  date: z.string().min(1, "Choose an appointment date.").refine((date) => date >= getLocalDateValue(), "Choose today or a future date."),
+  time: z.string().min(1, "Choose an appointment time."),
+});
+type BookingValues = z.infer<typeof appointmentBookingSchema>;
 
-function getInitialTheme(): Theme {
-  const savedTheme = window.localStorage.getItem(themeStorageKey);
-  if (savedTheme === "light" || savedTheme === "dark") return savedTheme;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+const initialWeeklyAvailability = {
+  Monday: { enabled: true, start: "09:00", end: "17:00" },
+  Tuesday: { enabled: true, start: "09:00", end: "17:00" },
+  Wednesday: { enabled: true, start: "09:00", end: "17:00" },
+  Thursday: { enabled: true, start: "09:00", end: "17:00" },
+  Friday: { enabled: true, start: "09:00", end: "15:00" },
+  Saturday: { enabled: false, start: "09:00", end: "13:00" },
+  Sunday: { enabled: false, start: "09:00", end: "13:00" },
+};
+
+function SignInScreen({ onEnter }: { onEnter: (role: WorkspaceRole) => void }) {
+  const [role, setRole] = useState<WorkspaceRole>("admin");
+  const roleOptions: Array<{ id: WorkspaceRole; title: string; description: string; initials: string }> = [
+    { id: "admin", title: "Clinic admin", description: "Manage your team and clinic operations", initials: "AD" },
+    { id: "doctor", title: "Doctor", description: "View your schedule and patient visits", initials: "DR" },
+    { id: "front-desk", title: "Front desk", description: "Coordinate check-ins and payments", initials: "FD" },
+  ];
+
+  return (
+    <main className="signin-screen">
+      <a className="brand signin-brand" href="#signin" aria-label="MediPath home">
+        <span className="brand-mark" aria-hidden="true"><img src="/medipath-logo.png" alt="" /></span>
+        <span className="brand-wordmark"><img src="/medipath-wordmark.png" alt="" /><span>MEDIPATH</span></span>
+      </a>
+      <section className="signin-card" aria-labelledby="signin-title">
+        <div className="signin-intro">
+          <span className="signin-symbol"><HeartPulse aria-hidden="true" /></span>
+          <p className="eyebrow">WELCOME TO MEDIPATH</p>
+          <h1 id="signin-title">Care coordination, made clearer.</h1>
+          <p>Choose a role to preview a connected clinic workspace. This demo uses fictional records only.</p>
+        </div>
+        <fieldset className="role-picker">
+          <legend>Choose your workspace</legend>
+          {roleOptions.map((option) => (
+            <button
+              type="button"
+              key={option.id}
+              className={`role-card${role === option.id ? " is-selected" : ""}`}
+              aria-pressed={role === option.id}
+              onClick={() => setRole(option.id)}
+            >
+              <span className={`role-avatar role-${option.id}`}>{option.initials}</span>
+              <span className="role-card-copy"><strong>{option.title}</strong><small>{option.description}</small></span>
+              <span className="role-radio" aria-hidden="true">{role === option.id && <Check />}</span>
+            </button>
+          ))}
+        </fieldset>
+        <Button variant="primary" className="signin-continue" onClick={() => onEnter(role)}>Continue with demo access <span aria-hidden="true">→</span></Button>
+        <p className="signin-note"><CheckCircle2 aria-hidden="true" /> No password needed. Demo changes stay in this browser session.</p>
+      </section>
+      <p className="signin-footer">A calmer way to coordinate a clinic day <span>·</span> © 2026 MediPath</p>
+    </main>
+  );
 }
 
 const todayLabel = new Intl.DateTimeFormat("en", {
@@ -92,7 +174,12 @@ const availabilityStatuses: Array<{ value: StatusKind; label: string }> = [
 ];
 
 function StatusBadge({ label, kind }: { label: string; kind: StatusKind }) {
-  return <span className={`status status-${kind}`}>{label}</span>;
+  const Icon = ["confirmed", "ready", "completed", "arrived", "current"].includes(kind)
+    ? CheckCircle2
+    : ["cancelled", "unavailable"].includes(kind)
+      ? X
+      : Clock3;
+  return <span className={`status status-${kind}`}><Icon aria-hidden="true" />{label}</span>;
 }
 
 function Button({
@@ -223,12 +310,14 @@ function DialogFrame({
   children,
   onClose,
   variant = "modal",
+  className = "",
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   onClose: () => void;
   variant?: "modal" | "drawer";
+  className?: string;
 }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
@@ -298,7 +387,7 @@ function DialogFrame({
     }}>
       <section
         ref={dialogRef as RefObject<HTMLElement>}
-        className="modal"
+        className={`modal ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="overlay-title"
@@ -435,10 +524,199 @@ function AvailabilityEditor({
   );
 }
 
+function AppointmentBooking({
+  appointments,
+  onComplete,
+  onCancel,
+}: {
+  appointments: Appointment[];
+  onComplete: (appointment: Omit<Appointment, "id" | "status" | "updated" | "type">) => void;
+  onCancel: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const { register, watch, trigger, setError, clearErrors, handleSubmit, formState: { errors } } = useForm<BookingValues>({
+    resolver: zodResolver(appointmentBookingSchema),
+    mode: "onTouched",
+    defaultValues: { patient: "", service: "General consultation", clinician: doctors[0].name, date: getLocalDateValue(), time: "" },
+  });
+  const patient = watch("patient");
+  const service = watch("service");
+  const clinician = watch("clinician");
+  const date = watch("date");
+  const time = watch("time");
+  const times = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30"];
+  const hasConflict = appointments.some((appointment) =>
+    appointment.date === date && appointment.time === time && appointment.clinician === clinician &&
+    appointment.type !== "cancelled",
+  );
+
+  async function continueBooking() {
+    const fields: Array<keyof BookingValues> = step === 0 ? ["patient", "service"] : ["clinician", "date", "time"];
+    if (!await trigger(fields)) return;
+    if (step === 1 && hasConflict) {
+      setError("time", { type: "conflict", message: "That doctor already has an appointment at this time. Choose another slot." });
+      return;
+    }
+    clearErrors();
+    setStep((current) => Math.min(current + 1, 2));
+  }
+
+  function finishBooking(values: BookingValues) {
+    if (hasConflict) {
+      setStep(1);
+      setError("time", { type: "conflict", message: "That slot is no longer available. Choose another time." });
+      return;
+    }
+    onComplete(values);
+  }
+
+  return (
+    <div className="booking-flow">
+      <ol className="booking-steps" aria-label="Appointment booking steps">
+        {["Patient", "Doctor & time", "Confirm"].map((label, index) => (
+          <li className={index === step ? "is-current" : index < step ? "is-complete" : ""} key={label}>
+            <span>{index < step ? <Check aria-hidden="true" /> : index + 1}</span>{label}
+          </li>
+        ))}
+      </ol>
+      <div className="modal-body">
+        {step === 0 && <>
+          <div className="form-field">
+            <label htmlFor="booking-patient">Patient record</label>
+            <select id="booking-patient" {...register("patient")}>
+              <option value="">Choose a patient</option>
+              {patientRows.map((entry) => <option key={entry.id} value={entry.patient}>{entry.patient}</option>)}
+            </select>
+            <span className="field-hint">Only fictional, masked patient records are available in this demo.</span>
+            {errors.patient?.message && <span className="form-error" role="alert">{errors.patient.message}</span>}
+          </div>
+          <div className="form-field">
+            <label htmlFor="booking-service">Visit type</label>
+            <select id="booking-service" {...register("service")}>
+              <option>General consultation</option><option>Follow-up visit</option><option>Blood pressure review</option>
+            </select>
+          </div>
+        </>}
+        {step === 1 && <>
+          <div className="form-field">
+            <label htmlFor="booking-doctor">Doctor</label>
+            <select id="booking-doctor" {...register("clinician")} onChange={(event) => { register("clinician").onChange(event); clearErrors("time"); }}>
+              {doctors.map((doctor) => <option key={doctor.name} value={doctor.name}>{doctor.name} · {doctor.specialty}</option>)}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="booking-date">Date</label>
+            <input id="booking-date" type="date" min={getLocalDateValue()} {...register("date")} onChange={(event) => { register("date").onChange(event); clearErrors("time"); }} />
+            {errors.date?.message && <span className="form-error" role="alert">{errors.date.message}</span>}
+          </div>
+          <div className="form-field">
+            <label htmlFor="booking-time">Available time</label>
+            <select id="booking-time" {...register("time")} onChange={(event) => { register("time").onChange(event); clearErrors("time"); }}>
+              <option value="">Choose a time</option>
+              {times.map((slot) => {
+                const busy = appointments.some((appointment) => appointment.date === date &&
+                  appointment.time === slot && appointment.clinician === clinician && appointment.type !== "cancelled");
+                return <option key={slot} value={slot} disabled={busy}>{slot}{busy ? " · unavailable" : ""}</option>;
+              })}
+            </select>
+            {errors.time?.message && <span className="form-error" role="alert">{errors.time.message}</span>}
+          </div>
+        </>}
+        {step === 2 && <div className="booking-summary">
+          <span className="summary-icon"><CalendarDays aria-hidden="true" /></span>
+          <h3>Review appointment</h3>
+          <p>Check the details before adding this appointment to the demo schedule.</p>
+          <dl><div><dt>Patient</dt><dd>{patient}</dd></div><div><dt>Visit</dt><dd>{service}</dd></div><div><dt>Doctor</dt><dd>{clinician}</dd></div><div><dt>Date & time</dt><dd>{date} · {time}</dd></div></dl>
+        </div>}
+        <div className="modal-actions">
+          <Button onClick={step === 0 ? onCancel : () => { clearErrors(); setStep((current) => current - 1); }}>{step === 0 ? "Cancel" : "Back"}</Button>
+          {step < 2
+            ? <Button variant="primary" onClick={continueBooking}>Continue</Button>
+            : <Button variant="primary" onClick={handleSubmit(finishBooking)}>Confirm appointment</Button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CashPaymentForm({
+  payment,
+  onPay,
+  onCancel,
+}: {
+  payment: PaymentRecord;
+  onPay: (method: string) => void;
+  onCancel: () => void;
+}) {
+  const [method, setMethod] = useState("Cash");
+  const [received, setReceived] = useState(String(payment.amount));
+  const [verified, setVerified] = useState(false);
+  const paidAmount = Number(received);
+  const balance = Number.isFinite(paidAmount) ? paidAmount - payment.amount : 0;
+  return (
+    <form className="modal-body" onSubmit={(event) => { event.preventDefault(); if (verified && balance >= 0) onPay(method); }}>
+      <div className="payment-summary"><span>Amount due</span><strong>₹{payment.amount.toLocaleString("en-IN")}</strong><small>{payment.patient} · {payment.service}</small></div>
+      <div className="form-field"><label htmlFor="payment-method">Payment method</label><select id="payment-method" value={method} onChange={(event) => { setMethod(event.target.value); setVerified(false); }}><option>Cash</option><option>Card</option><option>UPI</option></select></div>
+      {method === "Cash" && <>
+        <div className="form-field"><label htmlFor="cash-received">Cash received (₹)</label><input id="cash-received" type="number" min={payment.amount} step="1" value={received} onChange={(event) => { setReceived(event.target.value); setVerified(false); }} aria-describedby="cash-change" required /></div>
+        <p className="cash-change" id="cash-change">Change to return <strong>₹{Math.max(0, balance).toLocaleString("en-IN")}</strong></p>
+      </>}
+      <label className="verify-payment"><input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} /><span>I have verified the {method === "Cash" ? "cash received" : "payment"} with the patient.</span></label>
+      {method === "Cash" && balance < 0 && <p className="form-error" role="alert">Amount received must be at least ₹{payment.amount}.</p>}
+      <div className="modal-actions"><Button onClick={onCancel}>Cancel</Button><Button variant="primary" type="submit" disabled={!verified || (method === "Cash" && balance < 0)}>Confirm payment</Button></div>
+    </form>
+  );
+}
+
+function AppointmentCalendar({
+  appointments,
+  mode,
+  selectedDate,
+  onOpen,
+}: {
+  appointments: Appointment[];
+  mode: "day" | "week";
+  selectedDate: string;
+  onOpen: (id: string) => void;
+}) {
+  const anchor = new Date(`${selectedDate}T12:00:00`);
+  const dayStart = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  if (mode === "week") {
+    const weekday = (dayStart.getDay() + 6) % 7;
+    dayStart.setDate(dayStart.getDate() - weekday);
+  }
+  const days = mode === "day" ? [dayStart] : Array.from({ length: 7 }, (_, index) => {
+    const next = new Date(dayStart);
+    next.setDate(next.getDate() + index);
+    return next;
+  });
+  return <div className={`appointment-calendar${mode === "week" ? " is-week" : ""}`}>
+    {days.map((day) => {
+      const key = getLocalDateValue(day);
+      const dayAppointments = appointments.filter((item) => item.date === key).sort((a, b) => a.time.localeCompare(b.time));
+      return <section className="calendar-day" key={key}>
+        <h3>{new Intl.DateTimeFormat("en", { weekday: "short", day: "numeric", month: "short" }).format(day)}</h3>
+        {dayAppointments.length ? dayAppointments.map((item) => <button className={`calendar-event event-${item.type}`} type="button" key={item.id} onClick={() => onOpen(item.id)}>
+          <strong>{item.time}</strong><span>{item.patient}</span><small>{item.service} · {item.clinician}</small>
+        </button>) : <p className="calendar-empty">No appointments</p>}
+      </section>;
+    })}
+  </div>;
+}
+
 function App() {
   const [view, setView] = useState<ViewId>("overview");
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [role, setRole] = useState<WorkspaceRole>("admin");
+  const [signedIn, setSignedIn] = useState(false);
+  const [appointmentLayout, setAppointmentLayout] = useState<"list" | "day" | "week">("list");
+  const [theme, setTheme] = useState<Theme>("light");
+  const [themeReady, setThemeReady] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [payments, setPayments] = useState<PaymentRecord[]>(initialPaymentRows);
+  const [weeklyAvailability, setWeeklyAvailability] = useState(initialWeeklyAvailability);
+  const [settingsToggles, setSettingsToggles] = useState({ appointmentAlerts: true, queueAlerts: true, trustedDevice: false });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityItem[]>(initialAvailability);
   const [queue, setQueue] = useState<QueueItem[]>(initialQueue);
   const [reviewed, setReviewed] = useState<Set<string>>(() => new Set());
@@ -457,12 +735,22 @@ function App() {
   const closeOverlay = useCallback(() => setOverlay(null), []);
 
   useEffect(() => {
+    const savedTheme = window.localStorage.getItem(themeStorageKey);
+    if (savedTheme === "light" || savedTheme === "dark") {
+      setTheme(savedTheme);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
+    }
+    setThemeReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!themeReady) return;
     window.localStorage.setItem(themeStorageKey, theme);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute(
-      "content",
-      theme === "dark" ? "#0c1723" : "#edf5ff",
-    );
-  }, [theme]);
+    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+      meta.setAttribute("content", theme === "dark" ? "#0E1624" : "#EDF5FF");
+    });
+  }, [theme, themeReady]);
 
   const currentTitle = navItems.find((item) => item.id === view)?.label ?? "Overview";
   const pendingAppointments = appointments.filter((item) => item.type === "pending");
@@ -471,12 +759,18 @@ function App() {
   const activeQueue = queue.filter((item) => item.status === "In consultation");
 
   const visibleAppointments = useMemo(() => appointments.filter((item) => {
+    if (role === "doctor" && item.clinician !== doctors[0].name) return false;
     const searchText = `${item.patient} ${item.service} ${item.clinician} ${item.id} ${item.status}`.toLowerCase();
     const matchesSearch = searchText.includes(query.trim().toLowerCase());
     const matchesStatus = statusFilter === "all" || item.type === statusFilter;
-    const matchesDate = item.date === appointmentDateFilter;
+    const selectedDate = new Date(`${appointmentDateFilter}T12:00:00`);
+    const dateDelta = Math.floor((new Date(`${item.date}T12:00:00`).getTime() - selectedDate.getTime()) / 86400000);
+    const weekStartOffset = (selectedDate.getDay() + 6) % 7;
+    const matchesDate = appointmentLayout === "week"
+      ? dateDelta >= -weekStartOffset && dateDelta < 7 - weekStartOffset
+      : item.date === appointmentDateFilter;
     return matchesSearch && matchesStatus && matchesDate;
-  }), [appointments, query, statusFilter, appointmentDateFilter]);
+  }), [appointments, query, statusFilter, appointmentDateFilter, appointmentLayout, role]);
   const appointmentPageSize = 5;
   const appointmentPageCount = Math.max(1, Math.ceil(visibleAppointments.length / appointmentPageSize));
   const paginatedAppointments = visibleAppointments.slice(
@@ -490,6 +784,17 @@ function App() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
+  useEffect(() => {
+    const updateConnection = () => setIsOffline(!navigator.onLine);
+    updateConnection();
+    window.addEventListener("online", updateConnection);
+    window.addEventListener("offline", updateConnection);
+    return () => {
+      window.removeEventListener("online", updateConnection);
+      window.removeEventListener("offline", updateConnection);
+    };
+  }, []);
+
   useEffect(() => () => {
     if (loadingPreviewTimeout.current !== null) {
       window.clearTimeout(loadingPreviewTimeout.current);
@@ -502,7 +807,8 @@ function App() {
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
-      if (event.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName ?? "")) {
+      if ((event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) ||
+        (event.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName ?? ""))) {
         event.preventDefault();
         searchRef.current?.focus();
       }
@@ -542,7 +848,7 @@ function App() {
 
   function handleAction(action: ActionId | "new-request" | "availability-review", index?: number) {
     if (action === "new-request") {
-      setOverlay({ kind: "new-request" });
+      setOverlay({ kind: "booking" });
     } else if (action === "availability-review") {
       const staleIndex = availability.findIndex((item) => item.kind === "stale");
       setOverlay({ kind: "availability", serviceIndex: index ?? Math.max(staleIndex, 0) });
@@ -575,6 +881,46 @@ function App() {
       : item));
     closeOverlay();
     notify(`Sample request ${next} in this demo only.`);
+  }
+
+  function completeBooking(details: Omit<Appointment, "id" | "status" | "updated" | "type">) {
+    const nextId = `MP-${2049 + appointments.length - initialAppointments.length}`;
+    setAppointments((items) => [{
+      ...details,
+      id: nextId,
+      status: "Confirmed",
+      updated: "just now",
+      type: "confirmed",
+    }, ...items]);
+    closeOverlay();
+    notify("Appointment added to this demo schedule.");
+  }
+
+  function checkInAppointment(id: string) {
+    const appointment = appointments.find((item) => item.id === id);
+    if (!appointment || appointment.type !== "confirmed") return;
+    const token = `Q-${String(20 + queue.length).padStart(3, "0")}`;
+    setAppointments((items) => items.map((item) => item.id === id
+      ? { ...item, type: "arrived", status: "Checked in", updated: "just now" }
+      : item));
+    setQueue((items) => [...items, {
+      token,
+      patient: appointment.patient,
+      service: appointment.service,
+      arrival: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()),
+      status: "Waiting",
+      kind: "pending",
+    }]);
+    closeOverlay();
+    notify(`${appointment.patient} checked in · ${token} added to the sample queue.`);
+  }
+
+  function completePayment(id: string, method: string) {
+    setPayments((items) => items.map((item) => item.id === id
+      ? { ...item, method, status: "Paid", kind: "completed" }
+      : item));
+    setOverlay({ kind: "receipt", id });
+    notify("Payment recorded in this demo. Receipt is ready to print.");
   }
 
   function addAppointment(event: FormEvent<HTMLFormElement>) {
@@ -632,35 +978,54 @@ function App() {
   function renderOverview() {
     const followupCount = initialFollowups.filter((item) => !reviewed.has(item.id)).length;
     const todaysAppointments = appointments.filter((item) => item.date === getLocalDateValue());
+    const doctorAppointments = appointments.filter((item) => item.clinician === doctors[0].name && item.date === getLocalDateValue());
     const visiblePending = pendingAppointments.filter((item) => (
       `${item.patient} ${item.service} ${item.id}`.toLowerCase().includes(query.trim().toLowerCase())
     ));
-    const visibleUpcoming = filterValues(appointments, ["patient", "service", "clinician", "status", "id"]);
+    const upcomingForRole = role === "doctor" ? doctorAppointments : appointments.filter((item) => item.date === getLocalDateValue());
+    const visibleUpcoming = filterValues(upcomingForRole, ["patient", "service", "clinician", "status", "id"]);
+    const dashboardMetrics = role === "doctor" ? [
+      { label: "My appointments", value: todaysAppointments.filter((item) => item.clinician === doctors[0].name).length, note: "Scheduled for today", icon: <CalendarDays />, attention: false },
+      { label: "Checked in", value: todaysAppointments.filter((item) => item.clinician === doctors[0].name && item.type === "arrived").length, note: "Patients ready for their visit", icon: <CheckCircle2 />, attention: false },
+      { label: "Next visit", value: todaysAppointments.find((item) => item.clinician === doctors[0].name && item.type === "confirmed")?.time ?? "—", note: "Upcoming on your schedule", icon: <Clock3 />, attention: false },
+      { label: "Availability", value: Object.values(weeklyAvailability).filter((hours) => hours.enabled).length, note: "Days enabled this week", icon: <CalendarClock />, attention: false },
+    ] : role === "front-desk" ? [
+      { label: "Today's appointments", value: todaysAppointments.length, note: "Sample visits for today", icon: <CalendarDays />, attention: false },
+      { label: "Checked in", value: appointments.filter((item) => item.type === "arrived").length, note: "Ready in the waiting queue", icon: <CheckCircle2 />, attention: false },
+      { label: "Waiting", value: waitingQueue.length, note: "Patients in today's queue", icon: <ListOrdered />, attention: false },
+      { label: "Payments due", value: payments.filter((item) => item.status === "Due").length, note: "Visits awaiting payment", icon: <ReceiptText />, attention: true },
+    ] : [
+      { label: "Awaiting confirmation", value: pendingAppointments.length, note: "Requests need a staff decision", icon: <Clock3 />, attention: true },
+      { label: "Today's appointments", value: todaysAppointments.length, note: "Sample visits for today", icon: <CalendarDays />, attention: false },
+      { label: "In queue", value: waitingQueue.length, note: "Check-in status is demo data", icon: <ListOrdered />, attention: false },
+      { label: "Follow-ups due", value: followupCount, note: "Review tasks for clinic staff", icon: <MessageSquareText />, attention: followupCount > 0 },
+    ];
 
     return (
       <>
         <PageHeading
           eyebrow={todayLabel}
-          title="Today at the clinic"
-          subtitle="A clear view of requests, sessions and follow-ups that need attention."
-          actions={<>
+          title={role === "doctor" ? "Your clinic day" : role === "front-desk" ? "Today's front desk" : "Today at the clinic"}
+          subtitle={role === "doctor" ? "Your schedule and patient visits at a glance." : role === "front-desk" ? "Check-ins, appointments, and payments that need attention." : "A clear view of requests, sessions and follow-ups that need attention."}
+          actions={role === "admin" ? <>
             <Button onClick={() => handleAction("availability-review")}><Clock3 />Review availability</Button>
-            <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />New request</Button>
-          </>}
+            <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>
+          </> : role === "doctor" ? <Button variant="primary" onClick={() => navigate("availability")}><CalendarClock />Edit availability</Button> : <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>}
         />
         <DemoNotice><strong>Demo workspace · sample records only.</strong> Changes made here are temporary and do not reach a clinic, patient, or external partner.</DemoNotice>
         <div className="metric-grid">
-          <MetricCard label="Awaiting confirmation" value={pendingAppointments.length} note="Requests need a staff decision" icon={<Clock3 />} attention />
-          <MetricCard label="Today's appointments" value={todaysAppointments.length} note="Sample visits for today" icon={<CalendarDays />} />
-          <MetricCard label="In queue" value={waitingQueue.length} note="Check-in status is demo data" icon={<ListOrdered />} />
-          <MetricCard label="Follow-ups due" value={followupCount} note="Review tasks for clinic staff" icon={<MessageSquareText />} attention={followupCount > 0} />
+          {dashboardMetrics.map((metric) => <MetricCard {...metric} key={metric.label} />)}
         </div>
         <div className="overview-grid">
           <div className="left-stack">
-            <Panel title="Requests awaiting confirmation" action={<button className="text-link" type="button" onClick={() => navigate("appointments")}>All appointments <span aria-hidden="true">→</span></button>}>
-              <div className="panel-kicker panel-header-inline">{visiblePending.length} need review</div>
-              <AppointmentRequests appointments={visiblePending} onOpen={openAppointment} />
-            </Panel>
+            {role === "doctor"
+              ? <Panel title="Your next visits" action={<button className="text-link" type="button" onClick={() => navigate("appointments")}>My schedule <span aria-hidden="true">→</span></button>}>
+                <AppointmentTable appointments={visibleUpcoming} onOpen={openAppointment} />
+              </Panel>
+              : <Panel title="Requests awaiting confirmation" action={<button className="text-link" type="button" onClick={() => navigate("appointments")}>All appointments <span aria-hidden="true">→</span></button>}>
+                <div className="panel-kicker panel-header-inline">{visiblePending.length} need review</div>
+                <AppointmentRequests appointments={visiblePending} onOpen={openAppointment} />
+              </Panel>}
             <Panel title="Today's sessions" action={<button className="text-link" type="button" onClick={() => navigate("schedules")}>View schedule</button>}>
               <div className="session-list">
                 {sessions.map((session) => (
@@ -671,13 +1036,13 @@ function App() {
                 ))}
               </div>
             </Panel>
-            <Panel title="Upcoming appointments">
+            {role !== "doctor" && <Panel title="Upcoming appointments">
               <div className="table-controls"><span className="table-count">Today · {visibleUpcoming.length} sample records</span><button className="text-link" type="button" onClick={() => navigate("appointments")}>Open appointments</button></div>
               <AppointmentTable appointments={visibleUpcoming} onOpen={openAppointment} />
-            </Panel>
+            </Panel>}
           </div>
           <div className="right-stack">
-            <Panel title="Follow-ups to review" action={<button className="text-link" type="button" onClick={() => navigate("followups")}>Open list</button>}>
+            {role === "admin" && <Panel title="Follow-ups to review" action={<button className="text-link" type="button" onClick={() => navigate("followups")}>Open list</button>}>
               <div className="followup-list">
                 {initialFollowups.map((item) => (
                   <label className={`followup-item${reviewed.has(item.id) ? " is-complete" : ""}`} key={item.id}>
@@ -702,8 +1067,8 @@ function App() {
                   </label>
                 ))}
               </div>
-            </Panel>
-            <Panel title="Availability check">
+            </Panel>}
+            {role === "admin" && <Panel title="Availability check">
               <div className="availability-card">
                 <div className="availability-heading">
                   <span><strong>{staleServices.length ? "Services need review" : "No stale services reported"}</strong><small>{staleServices.length ? `${staleServices.length} report${staleServices.length === 1 ? "" : "s"} may be out of date.` : "Reported status is current for this demo."}</small></span>
@@ -714,14 +1079,17 @@ function App() {
                   <button type="button" onClick={() => handleAction("availability-review")}>Review services</button>
                 </div>
               </div>
-            </Panel>
-            <Panel title="Queue snapshot">
+            </Panel>}
+            {role === "doctor" && <Panel title="Your weekly availability" action={<button className="text-link" type="button" onClick={() => navigate("availability")}>Edit hours</button>}>
+              <div className="availability-card"><div className="availability-heading"><span><strong>{Object.values(weeklyAvailability).filter((hours) => hours.enabled).length} clinic days enabled</strong><small>Weekly schedule preview · not published live</small></span><StatusBadge label="Demo" kind="unknown" /></div></div>
+            </Panel>}
+            {(role === "admin" || role === "front-desk") && <Panel title="Queue snapshot">
               <div className="queue-summary">
                 <div className="queue-stat"><strong>{String(waitingQueue.length).padStart(2, "0")}</strong><span>Waiting</span></div>
                 <div className="queue-stat"><strong>{String(activeQueue.length).padStart(2, "0")}</strong><span>In consultation</span></div>
               </div>
               <div className="availability-foot queue-foot"><span>Sample queue · no patient names shown</span><button type="button" onClick={() => navigate("queue")}>Open queue</button></div>
-            </Panel>
+            </Panel>}
           </div>
         </div>
       </>
@@ -736,7 +1104,7 @@ function App() {
           title="Appointments"
           subtitle="Review requests and confirmed visits. A request stays unconfirmed until clinic staff acts."
           actions={<>
-            <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />New request</Button>
+            <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>
           </>}
         />
         <DemoNotice><strong>Demo records only.</strong> This page is not connected to a booking system. Status changes remain in this browser session.</DemoNotice>
@@ -748,17 +1116,24 @@ function App() {
               </select>
               <label className="date-filter">Date <input className="filter-select date-input" type="date" value={appointmentDateFilter} onChange={(event) => setAppointmentDateFilter(event.target.value)} aria-label="Filter appointments by date" /></label>
             </div>
-            <span className="table-count">{visibleAppointments.length} matching sample appointments</span>
+            <div className="view-switch" role="group" aria-label="Appointment view">
+              <button type="button" aria-pressed={appointmentLayout === "list"} onClick={() => setAppointmentLayout("list")}>List</button>
+              <button type="button" aria-pressed={appointmentLayout === "day"} onClick={() => setAppointmentLayout("day")}>Day</button>
+              <button type="button" aria-pressed={appointmentLayout === "week"} onClick={() => setAppointmentLayout("week")}>Week</button>
+            </div>
           </div>
-          <AppointmentTable appointments={paginatedAppointments} onOpen={openAppointment} />
-          <div className="pagination-controls">
+          <div className="calendar-count">{visibleAppointments.length} matching sample appointments</div>
+          {appointmentLayout === "list"
+            ? <AppointmentTable appointments={paginatedAppointments} onOpen={openAppointment} />
+            : <AppointmentCalendar appointments={visibleAppointments} mode={appointmentLayout} selectedDate={appointmentDateFilter} onOpen={openAppointment} />}
+          {appointmentLayout === "list" && <div className="pagination-controls">
             <span className="table-count">Showing {visibleAppointments.length ? (appointmentPage - 1) * appointmentPageSize + 1 : 0}–{Math.min(appointmentPage * appointmentPageSize, visibleAppointments.length)} of {visibleAppointments.length}</span>
             <nav aria-label="Appointments pagination">
               <Button className="pagination-button" disabled={appointmentPage === 1} onClick={() => setAppointmentPage((page) => Math.max(1, page - 1))}>Previous</Button>
               <span>Page {appointmentPage} of {appointmentPageCount}</span>
               <Button className="pagination-button" disabled={appointmentPage >= appointmentPageCount} onClick={() => setAppointmentPage((page) => Math.min(appointmentPageCount, page + 1))}>Next</Button>
             </nav>
-          </div>
+          </div>}
         </div>
         <p className="field-hint page-footnote">Reception list shows only the minimum patient identifier and service information needed for coordination.</p>
       </>
@@ -794,18 +1169,18 @@ function App() {
   }
 
   function renderSchedules() {
-    const rows = filterValues(scheduleRows, ["time", "service", "type", "status"]);
+    const rows = filterValues(scheduleRows, ["time", "doctor", "service", "type", "status"]);
     return (
       <>
         <PageHeading eyebrow="WORKSPACE · DOCTORS & SCHEDULES" title="Doctors & schedules" subtitle="Review published sessions and confirm exceptions before patients rely on them." />
-        <DemoNotice><strong>Schedule preview.</strong> No clinician identities or calendar integrations are configured in this demo.</DemoNotice>
+        <DemoNotice><strong>Schedule preview.</strong> Clinician profiles and visit sessions are fictional; no calendar integration is connected.</DemoNotice>
         <div className="section-grid">
           <Panel title="Sessions" action={<span className="panel-kicker">Today and upcoming</span>}>
             <div className="table-wrap">
               <table className="data-table">
-                <thead><tr><th>Time</th><th>Service / session</th><th>Publication</th></tr></thead>
+                <thead><tr><th>Time</th><th>Doctor</th><th>Service / session</th><th>Publication</th></tr></thead>
                 <tbody>{rows.map((item) => (
-                  <tr key={`${item.time}-${item.service}`}><td>{item.time}</td><td><span className="cell-primary">{item.service}</span><span className="cell-secondary">{item.type}</span></td><td><StatusBadge label={item.status} kind={item.kind} /></td></tr>
+                  <tr key={`${item.time}-${item.service}`}><td>{item.time}</td><td>{item.doctor}</td><td><span className="cell-primary">{item.service}</span><span className="cell-secondary">{item.type}</span></td><td><StatusBadge label={item.status} kind={item.kind} /></td></tr>
                 ))}</tbody>
               </table>
             </div>
@@ -817,7 +1192,10 @@ function App() {
   }
 
   function renderPatients() {
-    const rows = filterValues(patientRows, ["id", "patient", "detail", "status"]);
+    const patientRecords = role === "doctor"
+      ? patientRows.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
+      : patientRows;
+    const rows = filterValues(patientRecords, ["id", "patient", "detail", "status"]);
     return (
       <>
         <PageHeading eyebrow="WORKSPACE · PATIENTS" title="Patients" subtitle="Find a patient record by its masked identifier or related service." />
@@ -943,6 +1321,21 @@ function App() {
           </Panel>
           <aside className="panel side-note"><h3>Privacy reminder</h3><p>Use minimum necessary information in reception workflows. Clinical notes, diagnostic reports and patient contact details are not part of this demo.</p><p className="updated-line">Session changes reset when the page is reloaded.</p></aside>
         </div>
+        <Panel title="Notifications & devices" className="settings-panel">
+          <div className="settings-list">
+            {([
+              ["appointmentAlerts", "Appointment updates", "Get a notification when a booking request needs review."],
+              ["queueAlerts", "Queue changes", "Show check-in and queue status updates for today's visits."],
+              ["trustedDevice", "Remember this device", "Keep this demo role selected on this device for the session."],
+            ] as const).map(([key, title, description]) => <label className="settings-row" key={key}>
+              <span><strong>{title}</strong><small>{description}</small></span>
+              <input type="checkbox" role="switch" checked={settingsToggles[key]} onChange={(event) => {
+                setSettingsToggles((current) => ({ ...current, [key]: event.target.checked }));
+                notify(`${title} ${event.target.checked ? "enabled" : "disabled"} in this demo.`);
+              }} />
+            </label>)}
+          </div>
+        </Panel>
         <Panel title="Loading feedback" className="loading-preview-panel">
           <div className="loading-preview">
             <span className="field-hint">Preview the heartbeat treatment used for loading states.</span>
@@ -952,6 +1345,114 @@ function App() {
             </div>
           </div>
         </Panel>
+      </>
+    );
+  }
+
+  function renderBilling() {
+    const paidToday = payments.filter((item) => item.status === "Paid").reduce((total, item) => total + item.amount, 0);
+    const outstanding = payments.filter((item) => item.status === "Due").length;
+    return (
+      <>
+        <PageHeading eyebrow="WORKSPACE · BILLING" title="Payments & receipts" subtitle="Record a payment, verify the amount, and print a clear receipt." />
+        <DemoNotice><strong>Demo payments only.</strong> No real payment is processed and receipts are not tax invoices.</DemoNotice>
+        <div className="metric-grid metric-grid-two">
+          <MetricCard label="Collected today" value={`₹${paidToday.toLocaleString("en-IN")}`} note="Sample payments recorded" icon={<ReceiptText />} />
+          <MetricCard label="Payments due" value={outstanding} note="Visits awaiting payment" icon={<Clock3 />} attention={outstanding > 0} />
+        </div>
+        <Panel title="Recent payments" action={<span className="panel-kicker">Local demo records</span>}>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead><tr><th>Receipt</th><th>Patient identifier</th><th>Service</th><th>Amount</th><th>Method</th><th>Status</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
+              <tbody>{payments.map((item) => <tr key={item.id}>
+                <td><span className="cell-primary">{item.id}</span></td><td>{item.patient}</td><td>{item.service}</td>
+                <td className="tabular">₹{item.amount.toLocaleString("en-IN")}</td><td>{item.method}</td>
+                <td><StatusBadge label={item.status} kind={item.kind} /></td>
+                <td>{item.status === "Paid"
+                  ? <button className="table-action" type="button" onClick={() => setOverlay({ kind: "receipt", id: item.id })}>View receipt</button>
+                  : <Button variant="primary" className="table-action-button" onClick={() => setOverlay({ kind: "payment", id: item.id })}>Take payment</Button>}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+        </Panel>
+      </>
+    );
+  }
+
+  function renderAvailability() {
+    const weekdays = Object.keys(weeklyAvailability) as Array<keyof typeof initialWeeklyAvailability>;
+    return (
+      <>
+        <PageHeading eyebrow="MY SCHEDULE · AVAILABILITY" title="Doctor availability" subtitle="Set your regular clinic hours. Changes in this demo do not publish to patients." actions={
+          <Button variant="primary" onClick={() => notify("Availability saved in this demo.")}><Check />Save availability</Button>
+        } />
+        <DemoNotice><strong>Availability editor preview.</strong> This weekly schedule is local to your browser and does not create appointments or update a live clinic.</DemoNotice>
+        <Panel title="Weekly hours" action={<Button onClick={() => setWeeklyAvailability((hours) => ({
+          ...hours,
+          Tuesday: { ...hours.Monday },
+          Wednesday: { ...hours.Monday },
+          Thursday: { ...hours.Monday },
+          Friday: { ...hours.Monday },
+        }))}>Copy Monday to weekdays</Button>}>
+          <div className="weekly-editor">
+            {weekdays.map((day) => {
+              const hours = weeklyAvailability[day];
+              return <div className={`weekly-row${hours.enabled ? "" : " is-off"}`} key={day}>
+                <label className="day-toggle"><input type="checkbox" checked={hours.enabled} onChange={(event) => setWeeklyAvailability((current) => ({ ...current, [day]: { ...current[day], enabled: event.target.checked } }))} /><span>{day}</span></label>
+                {hours.enabled
+                  ? <div className="hours-range"><label><span className="visually-hidden">{day} start time</span><input type="time" value={hours.start} onChange={(event) => setWeeklyAvailability((current) => ({ ...current, [day]: { ...current[day], start: event.target.value } }))} /></label><span>to</span><label><span className="visually-hidden">{day} end time</span><input type="time" value={hours.end} onChange={(event) => setWeeklyAvailability((current) => ({ ...current, [day]: { ...current[day], end: event.target.value } }))} /></label></div>
+                  : <span className="day-off">Unavailable</span>}
+              </div>;
+            })}
+          </div>
+        </Panel>
+        <section className="panel side-note section-grid-spaced"><h3>Schedule exceptions</h3><p>For a day off or a one-time change, check existing appointments first and notify affected patients directly.</p><p className="updated-line">No live calendar or patient notification is connected.</p></section>
+      </>
+    );
+  }
+
+  function renderReports() {
+    const paidToday = payments.filter((item) => item.status === "Paid").reduce((total, item) => total + item.amount, 0);
+    return (
+      <>
+        <PageHeading eyebrow="MANAGE · REPORTS" title="Clinic reports" subtitle="A quick operational snapshot of today's sample activity." />
+        <DemoNotice><strong>Illustrative totals only.</strong> This report uses fictional records and is not suitable for financial reconciliation.</DemoNotice>
+        <div className="metric-grid">
+          <MetricCard label="Appointments" value={appointments.length} note="Across this demo schedule" icon={<CalendarDays />} />
+          <MetricCard label="Checked in" value={appointments.filter((item) => item.type === "arrived").length} note="Today's sample check-ins" icon={<CheckCircle2 />} />
+          <MetricCard label="Queue waiting" value={waitingQueue.length} note="Sample queue entries" icon={<ListOrdered />} />
+          <MetricCard label="Collected" value={`₹${paidToday.toLocaleString("en-IN")}`} note="Recorded payments" icon={<ReceiptText />} />
+        </div>
+        <Panel title="Activity summary"><div className="report-summary"><p>Use Reports to review clinic activity. Values update as you try the appointment, check-in, and payment flows.</p><Button onClick={() => navigate("appointments")}>Review appointments</Button></div></Panel>
+      </>
+    );
+  }
+
+  function renderStaff() {
+    const matchingDoctors = filterValues(doctors, ["name", "specialty"]);
+    return (
+      <>
+        <PageHeading eyebrow="MANAGE · TEAM" title="Doctors & staff" subtitle="Review the care team and their clinic roles." actions={<Button onClick={() => notify("Staff invitations are not enabled in this demo.", "info")}><Plus />Invite staff</Button>} />
+        <DemoNotice><strong>Sample directory.</strong> Staff accounts, credentials, and permissions are not connected to a live identity provider.</DemoNotice>
+        <div className="staff-grid">{matchingDoctors.map((doctor) => <article className="panel staff-card" key={doctor.name}>
+          <div className={`staff-avatar avatar-${doctor.color}`}>{doctor.initials}</div>
+          <div><h2>{doctor.name}</h2><p>{doctor.specialty}</p></div>
+          <StatusBadge label="On schedule" kind="current" />
+          <div className="staff-card-foot"><span>Clinic team · Sample profile</span><button className="table-action" type="button" onClick={() => navigate("availability")}>View availability</button></div>
+        </article>)}</div>
+        {!matchingDoctors.length && <div className="empty-state"><strong>No matching doctors</strong><span>Try another name or specialty.</span></div>}
+      </>
+    );
+  }
+
+  function renderNotes() {
+    return (
+      <>
+        <PageHeading eyebrow="DOCTOR WORKSPACE · NOTES" title="Visit notes" subtitle="A private workspace preview for clinician documentation." />
+        <DemoNotice><strong>No clinical notes are stored here.</strong> This demo uses fictional identifiers and does not provide an electronic health record.</DemoNotice>
+        <Panel title="Today's visits"><div className="availability-list">{appointments.filter((item) => item.type !== "cancelled").slice(0, 4).map((item) => <div className="availability-list-row" key={item.id}>
+          <span><strong>{item.patient}</strong><small>{item.time} · {item.service} · {item.clinician}</small></span><StatusBadge label={item.status} kind={item.type} /><button className="table-action" type="button" onClick={() => setOverlay({ kind: "info", title: "Visit notes", body: "Clinical documentation is not enabled for this demonstration.", result: "No notes or health information have been stored." })}>Open visit</button>
+        </div>)}</div></Panel>
       </>
     );
   }
@@ -967,12 +1468,44 @@ function App() {
       case "followups": return renderFollowups();
       case "partners": return renderPartners();
       case "settings": return renderSettings();
+      case "billing": return renderBilling();
+      case "availability": return renderAvailability();
+      case "reports": return renderReports();
+      case "staff": return renderStaff();
+      case "notes": return renderNotes();
       default: return renderOverview();
     }
   }
 
   function renderOverlay() {
     if (!overlay) return null;
+    if (overlay.kind === "booking") {
+      return <DialogFrame title="Book an appointment" description="Choose a patient, select an available doctor and time, then confirm." onClose={closeOverlay}>
+        <AppointmentBooking appointments={appointments} onComplete={completeBooking} onCancel={closeOverlay} />
+      </DialogFrame>;
+    }
+    if (overlay.kind === "payment") {
+      const payment = payments.find((item) => item.id === overlay.id);
+      if (!payment || payment.status === "Paid") return null;
+      return <DialogFrame title="Take a payment" description="Verify the payment with the patient before recording it." onClose={closeOverlay}>
+        <CashPaymentForm payment={payment} onPay={(method) => completePayment(payment.id, method)} onCancel={closeOverlay} />
+      </DialogFrame>;
+    }
+    if (overlay.kind === "receipt") {
+      const receipt = payments.find((item) => item.id === overlay.id);
+      if (!receipt || receipt.status !== "Paid") return null;
+      return <DialogFrame title="Payment receipt" description="A demo receipt preview. Not a tax invoice." onClose={closeOverlay} className="receipt-modal">
+        <div className="modal-body">
+          <div className="receipt-preview" id="receipt-print">
+            <div className="receipt-brand"><img src="/medipath-logo.png" alt="" /><span><strong>MediPath Clinic</strong><small>Sample receipt · Demo only</small></span></div>
+            <div className="receipt-success"><CheckCircle2 aria-hidden="true" /><span>Payment received</span></div>
+            <dl><div><dt>Receipt number</dt><dd>{receipt.id}</dd></div><div><dt>Date</dt><dd>{receipt.date}</dd></div><div><dt>Patient</dt><dd>{receipt.patient}</dd></div><div><dt>Service</dt><dd>{receipt.service}</dd></div><div><dt>Payment method</dt><dd>{receipt.method}</dd></div><div className="receipt-total"><dt>Total paid</dt><dd>₹{receipt.amount.toLocaleString("en-IN")}</dd></div></dl>
+            <p>This receipt is generated from fictional demo data and is not valid for reimbursement or tax purposes.</p>
+          </div>
+          <div className="modal-actions"><Button onClick={closeOverlay}>Close</Button><Button variant="primary" onClick={() => window.print()}><Printer />Print receipt</Button></div>
+        </div>
+      </DialogFrame>;
+    }
     if (overlay.kind === "info") {
       return (
         <DialogFrame title={overlay.title} onClose={closeOverlay}>
@@ -1010,40 +1543,70 @@ function App() {
           <div className="detail-patient"><span className="patient-avatar">P</span><span><strong>{item.patient}</strong><small>Request {item.id}</small></span></div>
           <dl className="detail-list">
             <div><dt>Service</dt><dd>{item.service}</dd></div><div><dt>Team</dt><dd>{item.clinician}</dd></div>
-            <div><dt>Requested session</dt><dd>{item.time} · Today</dd></div><div><dt>Booking status</dt><dd><StatusBadge label={item.status} kind={item.type} /></dd></div>
+            <div><dt>Requested session</dt><dd>{item.time} · {new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(new Date(`${item.date}T12:00:00`))}</dd></div><div><dt>Booking status</dt><dd><StatusBadge label={item.status} kind={item.type} /></dd></div>
             <div><dt>Last updated</dt><dd>{item.updated}</dd></div><div><dt>Branch</dt><dd>Main branch · Demo</dd></div>
           </dl>
           <p className="detail-note">This is a fictional request in an interactive demo. Confirming or cancelling updates only this page's sample state; no patient is notified.</p>
         </div>
         <div className="drawer-foot">
-          {item.type === "pending" ? <>
+          {item.type === "pending" && role !== "doctor" ? <>
             <Button variant="danger" onClick={() => updateAppointment(item.id, "cancelled")}>Decline request</Button>
             <Button variant="primary" onClick={() => updateAppointment(item.id, "confirmed")}>Confirm request</Button>
+          </> : item.type === "confirmed" ? <>
+            <Button onClick={closeOverlay}>Close</Button>
+            <Button variant="primary" onClick={() => checkInAppointment(item.id)}><Check />Check in</Button>
           </> : <Button onClick={closeOverlay}>Close</Button>}
         </div>
       </DialogFrame>
     );
   }
 
+  if (!signedIn) {
+    return <div className="portal-root" data-theme={theme} style={{ colorScheme: theme }}>
+      <SignInScreen onEnter={(nextRole) => { setRole(nextRole); setSignedIn(true); setView("overview"); }} />
+    </div>;
+  }
+
+  const roleViews: Record<WorkspaceRole, ViewId[]> = {
+    admin: ["overview", "appointments", "queue", "schedules", "patients", "services", "diagnostics", "followups", "partners", "billing", "reports", "staff", "settings"],
+    doctor: ["overview", "appointments", "schedules", "availability", "patients", "notes", "settings"],
+    "front-desk": ["overview", "appointments", "queue", "patients", "billing", "settings"],
+  };
+  const visibleNavItems = navItems.filter((item) => roleViews[role].includes(item.id));
+  const searchTerm = query.trim().toLowerCase();
+  const patientSearchRecords = role === "doctor"
+    ? patientRows.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
+    : patientRows;
+  const doctorSearchResults = role === "front-desk" ? [] : doctors
+    .filter((item) => `${item.name} ${item.specialty}`.toLowerCase().includes(searchTerm))
+    .map((item) => ({ kind: "doctor" as const, id: item.name, title: item.name, detail: `${item.specialty} · Doctor` }));
+  const globalSearchResults = searchTerm ? [
+    ...appointments.filter((item) => `${item.patient} ${item.service} ${item.clinician} ${item.id}`.toLowerCase().includes(searchTerm))
+      .map((item) => ({ kind: "appointment" as const, id: item.id, title: item.patient, detail: `${item.time} · ${item.service} · ${item.status}` })),
+    ...patientSearchRecords.filter((item) => `${item.patient} ${item.id} ${item.detail}`.toLowerCase().includes(searchTerm))
+      .map((item) => ({ kind: "patient" as const, id: item.id, title: item.patient, detail: `${item.detail} · Patient` })),
+    ...doctorSearchResults,
+  ].slice(0, 7) : [];
+
   return (
     <div className="portal-root" data-theme={theme} style={{ colorScheme: theme }}>
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="app-shell">
         <aside className={`sidebar${mobileNavOpen ? " is-open" : ""}`} aria-label="Clinic navigation">
-          <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="Clinic workspace home">
+          <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="MediPath home">
             <span className="brand-mark" aria-hidden="true"><img src="/medipath-logo.png" alt="" /></span>
             <span className="brand-wordmark">
               <img src="/medipath-wordmark.png" alt="" />
-              <span>CLINIC WORKSPACE</span>
+              <span>MEDIPATH</span>
             </span>
           </a>
           <div className="branch-switcher">
             <span className="branch-avatar" aria-hidden="true">MC</span>
-            <span className="branch-copy"><strong>Clinic workspace</strong><small>Main branch · Demo</small></span>
+            <span className="branch-copy"><strong>MediPath</strong><small>Main branch · Demo</small></span>
           </div>
           <nav className="primary-nav" aria-label="Workspace sections">
             <p className="nav-label">WORKSPACE</p>
-            {navItems.slice(0, 8).map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               return (
                 <button className={`nav-item${view === item.id ? " is-active" : ""}`} type="button" key={item.id} data-view={item.id} onClick={() => navigate(item.id)} aria-current={view === item.id ? "page" : undefined}>
@@ -1053,30 +1616,49 @@ function App() {
                 </button>
               );
             })}
-            <p className="nav-label nav-label-spaced">MANAGE</p>
-            {navItems.slice(8).map((item) => {
-              const Icon = item.icon;
-              return <button className={`nav-item${view === item.id ? " is-active" : ""}`} type="button" key={item.id} data-view={item.id} onClick={() => navigate(item.id)} aria-current={view === item.id ? "page" : undefined}><span className="nav-icon"><Icon /></span><span>{item.label}</span></button>;
-            })}
           </nav>
           <div className="sidebar-bottom">
             <div className="profile-summary" aria-label="Demo role preview">
-              <span className="profile-avatar" aria-hidden="true">ST</span><span className="profile-copy"><strong>Clinic staff</strong><small>Reception role · demo</small></span>
+              <span className="profile-avatar" aria-hidden="true">{role === "admin" ? "AD" : role === "doctor" ? "DR" : "FD"}</span><span className="profile-copy"><strong>{roleLabels[role]}</strong><small>Demo workspace · Main branch</small></span>
             </div>
           </div>
         </aside>
 
         <div className="page-column">
+          {isOffline && <div className="offline-banner" role="status"><span aria-hidden="true">!</span> You're offline. Demo records are available on this device only.</div>}
           <header className="topbar">
             <IconButton className="menu-button" label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}><Menu /></IconButton>
-            <div className="breadcrumb"><span>Clinic workspace</span><span className="crumb-separator">/</span><strong>{currentTitle}</strong></div>
+            <div className="breadcrumb"><span>MediPath</span><span className="crumb-separator">/</span><strong>{currentTitle}</strong></div>
             <div className="topbar-tools">
               <span className="demo-label"><span />Demo workspace</span>
-              <label className="global-search">
-                <Search aria-hidden="true" />
-                <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" aria-label="Search current page" />
-                <kbd>/</kbd>
-              </label>
+              {(role === "admin" || role === "front-desk") && <Button variant="primary" className="topbar-book" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>}
+              <div className="search-container">
+                <label className="global-search">
+                  <Search aria-hidden="true" />
+                  <input ref={searchRef} type="search" value={query} onFocus={() => setSearchOpen(true)} onChange={(event) => { setQuery(event.target.value); setSearchOpen(true); }} onKeyDown={(event) => { if (event.key === "Escape") setSearchOpen(false); }} placeholder="Search clinic..." aria-label="Search patients, doctors, and appointments" aria-expanded={searchOpen && Boolean(searchTerm)} aria-controls="global-search-results" />
+                  <kbd>⌘ K</kbd>
+                </label>
+                {searchOpen && searchTerm && <div className="search-results" id="global-search-results" role="region" aria-label="Search results">
+                  {globalSearchResults.length ? globalSearchResults.map((result) => <button type="button" className="search-result" key={`${result.kind}-${result.id}`} onClick={() => {
+                    setSearchOpen(false);
+                    if (result.kind === "appointment") {
+                      navigate("appointments");
+                      openAppointment(result.id);
+                    } else if (result.kind === "patient") {
+                      navigate("patients");
+                      setQuery(result.title);
+                    } else {
+                      navigate(role === "admin" ? "staff" : "schedules");
+                      setQuery(result.title);
+                    }
+                  }}>
+                    <span className="search-result-icon">{result.kind === "appointment" ? <CalendarDays /> : result.kind === "patient" ? <UserRound /> : <Stethoscope />}</span>
+                    <span><strong>{result.title}</strong><small>{result.detail}</small></span>
+                  </button>) : <p className="search-empty">No patients, doctors, or appointments found.</p>}
+                </div>}
+              </div>
+              <IconButton label="Notifications" onClick={() => setOverlay({ kind: "info", title: "You're all caught up", body: "Clinic notifications will appear here when there is something that needs your attention.", result: "No notifications are sent from this demo." })}><Bell /></IconButton>
+              <label className="role-switch-label"><span className="sr-only visually-hidden">Preview role</span><select className="role-switch" aria-label="Preview role" value={role} onChange={(event) => { const nextRole = event.target.value as WorkspaceRole; setRole(nextRole); if (!roleViews[nextRole].includes(view)) navigate("overview"); }}><option value="admin">Admin</option><option value="doctor">Doctor</option><option value="front-desk">Front desk</option></select></label>
               <IconButton
                 className="theme-toggle"
                 label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
@@ -1085,6 +1667,7 @@ function App() {
               >
                 {theme === "light" ? <Moon /> : <Sun />}
               </IconButton>
+              <IconButton label="Sign out of demo" onClick={() => { setSignedIn(false); setQuery(""); }}><LogOut /></IconButton>
             </div>
           </header>
           <main className="main-content" id="main-content" tabIndex={-1} ref={mainRef}>
