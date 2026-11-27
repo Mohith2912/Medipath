@@ -1862,16 +1862,9 @@ function App() {
             <div className="breadcrumb">
               <span>MediPath</span>
               <span className="crumb-separator">/</span>
-              <span>Clinical Workspace</span>
-              <span className="crumb-separator">/</span>
               <strong>{currentTitle}</strong>
             </div>
             <div className="topbar-tools">
-              <span className="operational-status-pill">
-                <span className="pulse-indicator" aria-hidden="true" />
-                <span>System Operational</span>
-              </span>
-              <span className="demo-label"><span />Demo workspace</span>
               {(role === "admin" || role === "front-desk") && <Button variant="primary" className="topbar-book" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>}
               <div className="search-container">
                 <label className="global-search">
