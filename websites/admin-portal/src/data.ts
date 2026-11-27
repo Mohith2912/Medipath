@@ -123,65 +123,65 @@ export const doctors = [
 ];
 
 export const paymentRows = [
-  { id: "RC-1042", patient: "Patient •••• 1093", service: "Follow-up visit", amount: 850, method: "Cash", status: "Paid", kind: "completed" as const, date: today },
-  { id: "RC-1041", patient: "Patient •••• 6380", service: "Blood pressure review", amount: 500, method: "Card", status: "Paid", kind: "completed" as const, date: today },
-  { id: "RC-1040", patient: "Patient •••• 2841", service: "General consultation", amount: 700, method: "—", status: "Due", kind: "pending" as const, date: today },
+  { id: "INV-1042", patient: "Elena Rostova", service: "Follow-up consultation", amount: 850, method: "Cash", status: "Paid", kind: "completed" as const, date: today },
+  { id: "INV-1041", patient: "Marcus Vance", service: "Blood pressure review", amount: 500, method: "Card", status: "Paid", kind: "completed" as const, date: today },
+  { id: "INV-1040", patient: "Aaliyah Khan", service: "General consultation", amount: 700, method: "UPI", status: "Due", kind: "pending" as const, date: today },
 ];
 
 export const initialAppointments: Appointment[] = [
-  { id: "MP-2048", date: today, patient: "Patient •••• 2841", service: "General consultation", clinician: "General medicine", time: "09:30", status: "Awaiting confirmation", updated: "8 min ago", type: "pending" },
-  { id: "MP-2047", date: today, patient: "Patient •••• 1093", service: "Follow-up visit", clinician: "General medicine", time: "10:00", status: "Confirmed", updated: "22 min ago", type: "confirmed" },
-  { id: "MP-2046", date: today, patient: "Patient •••• 6380", service: "Blood pressure review", clinician: "Nursing desk", time: "10:30", status: "Confirmed", updated: "34 min ago", type: "confirmed" },
-  { id: "MP-2045", date: today, patient: "Patient •••• 7152", service: "General consultation", clinician: "General medicine", time: "11:15", status: "Awaiting confirmation", updated: "51 min ago", type: "pending" },
+  { id: "APT-2048", date: today, patient: "Aaliyah Khan", service: "General consultation", clinician: "Dr. Maya Chen", time: "09:30", status: "Awaiting confirmation", updated: "8 min ago", type: "pending" },
+  { id: "APT-2047", date: today, patient: "Elena Rostova", service: "Follow-up consultation", clinician: "Dr. Maya Chen", time: "10:00", status: "Confirmed", updated: "22 min ago", type: "confirmed" },
+  { id: "APT-2046", date: today, patient: "Marcus Vance", service: "Blood pressure review", clinician: "Nursing desk", time: "10:30", status: "Confirmed", updated: "34 min ago", type: "confirmed" },
+  { id: "APT-2045", date: today, patient: "David Kim", service: "Cardiology evaluation", clinician: "Dr. Leena Patel", time: "11:15", status: "Awaiting confirmation", updated: "51 min ago", type: "pending" },
 ];
 
 export const sessions = [
-  { time: "09:00", service: "General medicine", detail: "Consultation session" },
-  { time: "11:30", service: "Nursing desk", detail: "Vitals & review" },
-  { time: "14:00", service: "General medicine", detail: "Afternoon session" },
+  { time: "09:00", service: "General Medicine", detail: "Consultation Session • Dr. Maya Chen" },
+  { time: "11:30", service: "Nursing Desk", detail: "Vitals & Review • Clinic Nursing Team" },
+  { time: "14:00", service: "Family Medicine", detail: "Afternoon Session • Dr. Arjun Rao" },
 ];
 
 export const initialFollowups: FollowupItem[] = [
-  { id: "FU-081", title: "Referral response due", detail: "Patient •••• 4550 · Referred externally", due: "Review today" },
-  { id: "FU-079", title: "Follow-up reminder", detail: "Patient •••• 2038 · General consultation", due: "Due today" },
-  { id: "FU-074", title: "Update requested", detail: "Patient •••• 9902 · Appointment outcome", due: "1 day overdue" },
+  { id: "FU-081", title: "Diagnostic lab results review", detail: "Elena Rostova · CBC and Lipid Panel", due: "Due today" },
+  { id: "FU-079", title: "Post-consultation follow-up", detail: "Marcus Vance · Blood pressure monitoring", due: "Due today" },
+  { id: "FU-074", title: "Cardiology follow-up schedule", detail: "David Kim · Referral review", due: "Pending action" },
 ];
 
 export const initialAvailability: AvailabilityItem[] = [
-  { service: "General consultation", status: "Current", kind: "current", updated: "Updated 18 min ago", owner: "Clinic staff" },
-  { service: "Nursing desk", status: "Needs reconfirmation", kind: "stale", updated: "Last updated yesterday", owner: "Clinic staff" },
-  { service: "Diagnostics", status: "Not offered", kind: "not-offered", updated: "No in-house service listed", owner: "Clinic staff" },
+  { service: "General consultation", status: "Available", kind: "current", updated: "Updated 15 min ago", owner: "Clinical Staff" },
+  { service: "Nursing desk & vitals", status: "Active", kind: "current", updated: "Active on duty", owner: "Nursing Team" },
+  { service: "Cardiology clinic", status: "Scheduled", kind: "current", updated: "Dr. Leena Patel on duty", owner: "Outpatient Dept" },
 ];
 
 export const initialQueue: QueueItem[] = [
-  { token: "Q-018", patient: "Patient •••• 1093", service: "General medicine", arrival: "09:18", status: "Waiting", kind: "pending" },
-  { token: "Q-019", patient: "Patient •••• 6380", service: "Nursing desk", arrival: "09:26", status: "Waiting", kind: "pending" },
-  { token: "Q-017", patient: "Patient •••• 2841", service: "General medicine", arrival: "09:05", status: "In consultation", kind: "confirmed" },
+  { token: "Q-101", patient: "Elena Rostova", service: "General Medicine", arrival: "09:15", status: "Waiting", kind: "pending" },
+  { token: "Q-102", patient: "Marcus Vance", service: "Nursing Desk", arrival: "09:25", status: "Waiting", kind: "pending" },
+  { token: "Q-100", patient: "Aaliyah Khan", service: "General Medicine", arrival: "09:05", status: "In consultation", kind: "confirmed" },
 ];
 
 export const patientRows = [
-  { id: "PT-2841", patient: "Patient •••• 2841", lastVisit: "Today, 09:30", detail: "General consultation", status: "Awaiting confirmation", kind: "pending" as const },
-  { id: "PT-1093", patient: "Patient •••• 1093", lastVisit: "Today, 10:00", detail: "Follow-up visit", status: "Confirmed", kind: "confirmed" as const },
-  { id: "PT-6380", patient: "Patient •••• 6380", lastVisit: "Today, 10:30", detail: "Blood pressure review", status: "Confirmed", kind: "confirmed" as const },
-  { id: "PT-4550", patient: "Patient •••• 4550", lastVisit: "Nov 22, 2026", detail: "External referral", status: "Needs follow-up", kind: "review" as const },
-  { id: "PT-2038", patient: "Patient •••• 2038", lastVisit: "Nov 20, 2026", detail: "General consultation", status: "Follow-up due", kind: "review" as const },
+  { id: "PT-1001", patient: "Elena Rostova", lastVisit: "Today, 09:30", detail: "General consultation", status: "Confirmed", kind: "confirmed" as const },
+  { id: "PT-1002", patient: "Marcus Vance", lastVisit: "Today, 10:00", detail: "Blood pressure review", status: "Confirmed", kind: "confirmed" as const },
+  { id: "PT-1003", patient: "Aaliyah Khan", lastVisit: "Today, 10:30", detail: "Follow-up consultation", status: "In consultation", kind: "confirmed" as const },
+  { id: "PT-1004", patient: "David Kim", lastVisit: "Nov 25, 2026", detail: "Cardiology evaluation", status: "Active", kind: "confirmed" as const },
+  { id: "PT-1005", patient: "Samantha Ward", lastVisit: "Nov 22, 2026", detail: "Annual health checkup", status: "Completed", kind: "completed" as const },
 ];
 
 export const scheduleRows = [
-  { time: "09:00 – 11:30", doctor: "Dr. Maya Chen", service: "General medicine", type: "Consultation session", status: "Current", kind: "current" as const },
-  { time: "11:30 – 13:00", doctor: "Clinic nursing team", service: "Nursing desk", type: "Vitals & review", status: "Current", kind: "current" as const },
-  { time: "14:00 – 17:00", doctor: "Dr. Arjun Rao", service: "Family medicine", type: "Consultation session", status: "Current", kind: "current" as const },
-  { time: "Wed · 10:00 – 12:00", doctor: "Dr. Leena Patel", service: "Cardiology", type: "Schedule needs confirmation", status: "Needs review", kind: "review" as const },
+  { time: "09:00 – 11:30", doctor: "Dr. Maya Chen", service: "General Medicine", type: "Morning Consultation", status: "Active", kind: "current" as const },
+  { time: "11:30 – 13:00", doctor: "Clinic Nursing Team", service: "Nursing Desk", type: "Vitals & Triage", status: "Active", kind: "current" as const },
+  { time: "14:00 – 17:00", doctor: "Dr. Arjun Rao", service: "Family Medicine", type: "Afternoon Consultation", status: "Active", kind: "current" as const },
+  { time: "10:00 – 13:00", doctor: "Dr. Leena Patel", service: "Cardiology", type: "Specialist Clinic", status: "Active", kind: "current" as const },
 ];
 
 export const diagnosticRows = [
-  { time: "10:15", patient: "Patient •••• 9901", service: "External lab referral", status: "Referral sent", kind: "confirmed" as const, detail: "Partner-reported status · updated yesterday" },
-  { time: "13:40", patient: "Patient •••• 6178", service: "External lab referral", status: "Awaiting update", kind: "pending" as const, detail: "No result reported to this workspace" },
+  { time: "10:15", patient: "Marcus Vance", service: "Lipid Profile & ECG", status: "Completed", kind: "completed" as const, detail: "Central Pathology Lab" },
+  { time: "13:40", patient: "David Kim", service: "Echocardiogram", status: "In Progress", kind: "pending" as const, detail: "Cardiology Imaging Center" },
 ];
 
 export const partnerRows = [
-  { name: "Diagnostic partner", detail: "External referrals · no connection configured", status: "Not connected", kind: "unknown" as const },
-  { name: "Pharmacy partner", detail: "No participating seller configured", status: "Not enabled", kind: "not-offered" as const },
-  { name: "Blood coordination", detail: "Institution verification required", status: "Not enabled", kind: "not-offered" as const },
-  { name: "Ambulance assistance", detail: "Partner-supervised service only", status: "Not enabled", kind: "not-offered" as const },
+  { name: "Central Diagnostic Laboratory", detail: "Integrated blood tests, pathology & automated reporting", status: "Connected", kind: "current" as const },
+  { name: "Hospital Central Pharmacy", detail: "Electronic prescriptions & drug dispensary", status: "Active", kind: "current" as const },
+  { name: "Regional Blood Bank Network", detail: "Verified blood group registry & cross-matching service", status: "Connected", kind: "current" as const },
+  { name: "Rapid Response Medical Logistics", detail: "Emergency patient transport & coordinated ambulance dispatch", status: "Active", kind: "current" as const },
 ];
