@@ -6,13 +6,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
   ArrowUpRight,
   Bell,
   CalendarClock,
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronDown,
+  Clock,
   Clock3,
+  DollarSign,
   HeartPulse,
   ListOrdered,
   LogOut,
@@ -24,10 +30,15 @@ import {
   Plus,
   Printer,
   ReceiptText,
+  RefreshCw,
+  Rows,
   Search,
   Stethoscope,
   Sun,
+  TrendingDown,
+  TrendingUp,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import {
@@ -61,6 +72,7 @@ type Overlay =
   | { kind: "booking" }
   | { kind: "payment"; id: string }
   | { kind: "receipt"; id: string }
+  | { kind: "patient-profile"; id: string }
   | { kind: "info"; title: string; body: string; result: string }
   | null;
 type ActionId = "patient-info" | "diagnostics-info" | "partner-info" | "settings-help";
@@ -729,6 +741,7 @@ function App() {
   const [role, setRole] = useState<WorkspaceRole>("admin");
   const [signedIn, setSignedIn] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [appointmentLayout, setAppointmentLayout] = useState<"list" | "day" | "week">("list");
   const [theme, setTheme] = useState<Theme>("light");
   const [themeReady, setThemeReady] = useState(false);
@@ -1219,14 +1232,65 @@ function App() {
     const rows = filterValues(patientRecords, ["id", "patient", "detail", "status"]);
     return (
       <>
-        <PageHeading eyebrow="WORKSPACE · PATIENTS" title="Patients" subtitle="Find a patient record by its masked identifier or related service." />
-        <DemoNotice><strong>Fictional identifiers only.</strong> There are no medical records or personal patient details in this workspace.</DemoNotice>
+        <PageHeading
+          eyebrow="WORKSPACE · PATIENTS"
+          title="Patient Directory"
+          subtitle="Enterprise directory of registered clinic patients, active care plans, and clinical visits."
+          actions={
+            <Button variant="primary" onClick={() => handleAction("new-request")}>
+              <Plus />Book appointment
+            </Button>
+          }
+        />
+        <DemoNotice><strong>Clinical directory view.</strong> Fictional masked records demonstrating ERP information hierarchy. Select any patient to review their full clinical profile.</DemoNotice>
         <div className="panel">
-          <div className="table-controls"><span className="table-count">5 sample records · limited reception view</span><button className="text-link" type="button" onClick={() => handleAction("patient-info")}>Access guidance</button></div>
+          <div className="table-controls">
+            <span className="table-count">{rows.length} patient records · clinical reception view</span>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <button
+                type="button"
+                className="density-toggle-btn"
+                onClick={() => setDensity(density === "comfortable" ? "compact" : "comfortable")}
+                title="Toggle table density"
+              >
+                <Rows /> {density === "compact" ? "Compact view" : "Comfortable view"}
+              </button>
+              <button className="text-link" type="button" onClick={() => handleAction("patient-info")}>Access guidance</button>
+            </div>
+          </div>
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Patient identifier</th><th>Last activity</th><th>Service</th><th>Status</th></tr></thead>
-              <tbody>{rows.map((item) => <tr key={item.id}><td><span className="cell-primary">{item.patient}</span><span className="cell-secondary">{item.id}</span></td><td>{item.lastVisit}</td><td>{item.detail}</td><td><StatusBadge label={item.status} kind={item.kind} /></td></tr>)}</tbody>
+              <thead>
+                <tr>
+                  <th scope="col">Patient identity / MRN</th>
+                  <th scope="col">Last clinical activity</th>
+                  <th scope="col">Active service / care plan</th>
+                  <th scope="col">Clinical status</th>
+                  <th scope="col"><span className="visually-hidden">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <span className="cell-primary">{item.patient}</span>
+                      <span className="cell-secondary">{item.id}</span>
+                    </td>
+                    <td>{item.lastVisit}</td>
+                    <td>{item.detail}</td>
+                    <td><StatusBadge label={item.status} kind={item.kind} /></td>
+                    <td>
+                      <button
+                        className="table-action"
+                        type="button"
+                        onClick={() => setOverlay({ kind: "patient-profile", id: item.id })}
+                      >
+                        Clinical profile →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
             {!rows.length && <div className="empty-state"><strong>No matching patient records</strong><span>Try searching by masked identifier or service.</span></div>}
           </div>
@@ -1570,6 +1634,97 @@ function App() {
         </DialogFrame>
       );
     }
+    if (overlay.kind === "patient-profile") {
+      const patient = patientRows.find((p) => p.id === overlay.id);
+      if (!patient) return null;
+      const patientAppointments = appointments.filter((a) => a.patient === patient.patient);
+      const patientPayments = payments.filter((p) => p.patient === patient.patient);
+      return (
+        <DialogFrame title="Patient Clinical Profile" onClose={closeOverlay} variant="drawer">
+          <div className="drawer-body">
+            <div className="patient-identity-header">
+              <div className="patient-identity-top">
+                <div className="patient-identity-avatar-wrap">
+                  <span className="patient-identity-avatar">{patient.patient.slice(-2)}</span>
+                  <div className="patient-identity-meta">
+                    <strong>{patient.patient}</strong>
+                    <small>MRN: {patient.id} · Age 42y · Female · O+ (Demo)</small>
+                  </div>
+                </div>
+                <StatusBadge label={patient.status} kind={patient.kind} />
+              </div>
+              <div className="patient-chips-row">
+                <span className="patient-chip patient-alert-chip"><AlertTriangle style={{ width: 12, height: 12 }} /> Penicillin Allergy</span>
+                <span className="patient-chip"><Activity style={{ width: 12, height: 12 }} /> Vitals: 120/80 mmHg</span>
+                <span className="patient-chip"><HeartPulse style={{ width: 12, height: 12 }} /> Pulse: 72 bpm</span>
+                <span className="patient-chip">Primary: Dr. Maya Chen</span>
+              </div>
+            </div>
+
+            <div className="panel" style={{ marginBottom: "16px", background: "var(--surface-solid)" }}>
+              <div className="panel-header">
+                <h2>Clinical visits & history</h2>
+                <span className="panel-kicker">{patientAppointments.length} recorded</span>
+              </div>
+              <div className="clinical-timeline" style={{ padding: "12px 16px" }}>
+                {patientAppointments.length ? patientAppointments.map((apt) => (
+                  <div className="clinical-timeline-item" key={apt.id}>
+                    <span className="timeline-bullet"><CalendarDays /></span>
+                    <div className="timeline-content">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
+                        <strong>{apt.service}</strong>
+                        <StatusBadge label={apt.status} kind={apt.type} />
+                      </div>
+                      <small>{apt.date} at {apt.time} · {apt.clinician}</small>
+                    </div>
+                  </div>
+                )) : (
+                  <p style={{ color: "var(--text-muted)", fontSize: "12px", margin: "6px 0" }}>
+                    Last activity: {patient.lastVisit} ({patient.detail})
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="panel" style={{ background: "var(--surface-solid)" }}>
+              <div className="panel-header">
+                <h2>Billing & ledger status</h2>
+              </div>
+              <div style={{ padding: "14px 16px" }}>
+                {patientPayments.length ? patientPayments.map((pmt) => (
+                  <div key={pmt.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+                    <div>
+                      <strong style={{ fontSize: "12.5px" }}>{pmt.service}</strong>
+                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{pmt.id} · {pmt.method}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <strong className="tabular" style={{ fontSize: "13px" }}>₹{pmt.amount.toLocaleString("en-IN")}</strong>
+                      <div><StatusBadge label={pmt.status} kind={pmt.kind} /></div>
+                    </div>
+                  </div>
+                )) : (
+                  <p style={{ color: "var(--text-muted)", fontSize: "12px", margin: "4px 0" }}>
+                    No pending invoices for this patient record.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="drawer-foot">
+            <Button onClick={closeOverlay}>Close profile</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                closeOverlay();
+                handleAction("new-request");
+              }}
+            >
+              <Plus /> Book appointment
+            </Button>
+          </div>
+        </DialogFrame>
+      );
+    }
     const item = appointments.find((appointment) => appointment.id === overlay.id);
     if (!item) return null;
     return (
@@ -1623,7 +1778,7 @@ function App() {
   ].slice(0, 7) : [];
 
   return (
-    <div className="portal-root" data-theme={theme} style={{ colorScheme: theme }}>
+    <div className={`portal-root ${density === "compact" ? "density-compact" : ""}`} data-theme={theme} style={{ colorScheme: theme }}>
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="app-shell">
         <aside className={`sidebar${mobileNavOpen ? " is-open" : ""}${sidebarCollapsed ? " is-collapsed" : ""}`} aria-label="Clinic navigation">
@@ -1760,6 +1915,13 @@ function App() {
                 onClick={() => setTheme((current) => current === "light" ? "dark" : "light")}
               >
                 {theme === "light" ? <Moon /> : <Sun />}
+              </IconButton>
+              <IconButton
+                label={density === "comfortable" ? "Switch to compact table density" : "Switch to comfortable density"}
+                title={density === "comfortable" ? "Compact density" : "Comfortable density"}
+                onClick={() => setDensity((d) => d === "comfortable" ? "compact" : "comfortable")}
+              >
+                <Rows />
               </IconButton>
               <IconButton label="Sign out of demo" onClick={() => { setSignedIn(false); setQuery(""); }}><LogOut /></IconButton>
             </div>
