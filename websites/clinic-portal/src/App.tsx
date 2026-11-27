@@ -19,6 +19,8 @@ import {
   Menu,
   MessageSquareText,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Printer,
   ReceiptText,
@@ -72,6 +74,24 @@ const roleLabels: Record<WorkspaceRole, string> = {
   doctor: "Doctor",
   "front-desk": "Front desk",
 };
+
+const navCategories: Array<{
+  category: string;
+  items: ViewId[];
+}> = [
+  {
+    category: "Clinical Operations",
+    items: ["overview", "appointments", "queue", "schedules", "patients"],
+  },
+  {
+    category: "Care Coordination",
+    items: ["services", "diagnostics", "followups", "partners"],
+  },
+  {
+    category: "Practice & Finance",
+    items: ["billing", "availability", "reports", "staff", "notes", "settings"],
+  },
+];
 const appointmentBookingSchema = z.object({
   patient: z.string().min(1, "Choose a patient record to continue."),
   service: z.string().min(1, "Choose a visit type."),
@@ -708,6 +728,7 @@ function App() {
   const [view, setView] = useState<ViewId>("overview");
   const [role, setRole] = useState<WorkspaceRole>("admin");
   const [signedIn, setSignedIn] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [appointmentLayout, setAppointmentLayout] = useState<"list" | "day" | "week">("list");
   const [theme, setTheme] = useState<Theme>("light");
   const [themeReady, setThemeReady] = useState(false);
@@ -1336,14 +1357,28 @@ function App() {
             </label>)}
           </div>
         </Panel>
-        <Panel title="Loading feedback" className="loading-preview-panel">
+        <Panel title="Loading feedback & motion system" className="loading-preview-panel">
           <div className="loading-preview">
-            <span className="field-hint">Preview the heartbeat treatment used for loading states.</span>
+            <span className="field-hint">Preview the signature glass heartbeat and skeleton transitions used during data refresh.</span>
             <div className="loading-preview-actions">
-              {showLoadingPreview && <HeartbeatLoader label="Previewing loading state" />}
-              <Button onClick={previewLoading} disabled={showLoadingPreview}>{showLoadingPreview ? "Preview running" : "Preview heartbeat"}</Button>
+              {showLoadingPreview && <HeartbeatLoader label="Simulating background clinical sync..." />}
+              <Button onClick={previewLoading} disabled={showLoadingPreview}>{showLoadingPreview ? "Preview running" : "Preview glass loader"}</Button>
             </div>
           </div>
+          {showLoadingPreview && (
+            <div style={{ padding: "0 20px 20px" }}>
+              <div className="skeleton-grid">
+                <div className="skeleton-card"><div className="skeleton-bar" style={{ width: "40%" }} /><div className="skeleton-bar" style={{ width: "70%", height: "22px", margin: "10px 0" }} /><div className="skeleton-bar" style={{ width: "50%" }} /></div>
+                <div className="skeleton-card"><div className="skeleton-bar" style={{ width: "45%" }} /><div className="skeleton-bar" style={{ width: "65%", height: "22px", margin: "10px 0" }} /><div className="skeleton-bar" style={{ width: "40%" }} /></div>
+                <div className="skeleton-card"><div className="skeleton-bar" style={{ width: "35%" }} /><div className="skeleton-bar" style={{ width: "80%", height: "22px", margin: "10px 0" }} /><div className="skeleton-bar" style={{ width: "55%" }} /></div>
+                <div className="skeleton-card"><div className="skeleton-bar" style={{ width: "50%" }} /><div className="skeleton-bar" style={{ width: "60%", height: "22px", margin: "10px 0" }} /><div className="skeleton-bar" style={{ width: "45%" }} /></div>
+              </div>
+              <div className="panel" style={{ padding: "10px 0", background: "var(--surface-solid)" }}>
+                <div className="skeleton-table-row"><div className="skeleton-bar" style={{ width: "22%" }} /><div className="skeleton-bar" style={{ width: "28%" }} /><div className="skeleton-bar" style={{ width: "16%" }} /><div className="skeleton-bar" style={{ width: "12%", marginLeft: "auto" }} /></div>
+                <div className="skeleton-table-row"><div className="skeleton-bar" style={{ width: "18%" }} /><div className="skeleton-bar" style={{ width: "32%" }} /><div className="skeleton-bar" style={{ width: "20%" }} /><div className="skeleton-bar" style={{ width: "12%", marginLeft: "auto" }} /></div>
+              </div>
+            </div>
+          )}
         </Panel>
       </>
     );
@@ -1572,7 +1607,6 @@ function App() {
     doctor: ["overview", "appointments", "schedules", "availability", "patients", "notes", "settings"],
     "front-desk": ["overview", "appointments", "queue", "patients", "billing", "settings"],
   };
-  const visibleNavItems = navItems.filter((item) => roleViews[role].includes(item.id));
   const searchTerm = query.trim().toLowerCase();
   const patientSearchRecords = role === "doctor"
     ? patientRows.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
@@ -1592,44 +1626,104 @@ function App() {
     <div className="portal-root" data-theme={theme} style={{ colorScheme: theme }}>
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="app-shell">
-        <aside className={`sidebar${mobileNavOpen ? " is-open" : ""}`} aria-label="Clinic navigation">
-          <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="MediPath home">
-            <span className="brand-mark" aria-hidden="true"><img src="/medipath-logo.png" alt="" /></span>
-            <span className="brand-wordmark">
-              <img src="/medipath-wordmark.png" alt="" />
-              <span>MEDIPATH</span>
-            </span>
-          </a>
+        <aside className={`sidebar${mobileNavOpen ? " is-open" : ""}${sidebarCollapsed ? " is-collapsed" : ""}`} aria-label="Clinic navigation">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+            <a className="brand" href="#overview" onClick={(event) => { event.preventDefault(); navigate("overview"); }} aria-label="MediPath home">
+              <span className="brand-mark" aria-hidden="true"><img src="/medipath-logo.png" alt="" /></span>
+              <span className="brand-wordmark">
+                <img src="/medipath-wordmark.png" alt="" />
+                <span>HEALTHCARE ERP</span>
+              </span>
+            </a>
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                className="sidebar-collapse-toggle"
+                onClick={() => setSidebarCollapsed(true)}
+                aria-label="Collapse sidebar"
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose />
+              </button>
+            )}
+          </div>
+          {sidebarCollapsed && (
+            <button
+              type="button"
+              className="sidebar-collapse-toggle"
+              onClick={() => setSidebarCollapsed(false)}
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+            >
+              <PanelLeftOpen />
+            </button>
+          )}
           <div className="branch-switcher">
             <span className="branch-avatar" aria-hidden="true">MC</span>
-            <span className="branch-copy"><strong>MediPath</strong><small>Main branch · Demo</small></span>
+            <span className="branch-copy">
+              <strong>MediPath Campus</strong>
+              <small><span className="branch-status-dot" aria-hidden="true" /> Main Hospital · Live</small>
+            </span>
           </div>
           <nav className="primary-nav" aria-label="Workspace sections">
-            <p className="nav-label">WORKSPACE</p>
-            {visibleNavItems.map((item) => {
-              const Icon = item.icon;
+            {navCategories.map((group) => {
+              const itemsInGroup = group.items.filter((id) => roleViews[role].includes(id));
+              if (!itemsInGroup.length) return null;
               return (
-                <button className={`nav-item${view === item.id ? " is-active" : ""}`} type="button" key={item.id} data-view={item.id} onClick={() => navigate(item.id)} aria-current={view === item.id ? "page" : undefined}>
-                  <span className="nav-icon"><Icon /></span><span>{item.label}</span>
-                  {item.id === "appointments" && <span className="nav-count">{appointments.length}</span>}
-                  {item.id === "services" && staleServices.length > 0 && <span className="nav-alert" aria-label="Needs review" />}
-                </button>
+                <div className="nav-group" key={group.category}>
+                  <p className="nav-label">{group.category}</p>
+                  {itemsInGroup.map((id) => {
+                    const item = navItems.find((n) => n.id === id);
+                    if (!item) return null;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        className={`nav-item${view === item.id ? " is-active" : ""}`}
+                        type="button"
+                        key={item.id}
+                        data-view={item.id}
+                        onClick={() => navigate(item.id)}
+                        aria-current={view === item.id ? "page" : undefined}
+                        title={sidebarCollapsed ? item.label : undefined}
+                      >
+                        <span className="nav-icon"><Icon /></span>
+                        <span>{item.label}</span>
+                        {item.id === "appointments" && <span className="nav-count">{appointments.length}</span>}
+                        {item.id === "services" && staleServices.length > 0 && <span className="nav-alert" aria-label="Needs review" />}
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>
           <div className="sidebar-bottom">
             <div className="profile-summary" aria-label="Demo role preview">
-              <span className="profile-avatar" aria-hidden="true">{role === "admin" ? "AD" : role === "doctor" ? "DR" : "FD"}</span><span className="profile-copy"><strong>{roleLabels[role]}</strong><small>Demo workspace · Main branch</small></span>
+              <span className="profile-avatar" aria-hidden="true">{role === "admin" ? "AD" : role === "doctor" ? "DR" : "FD"}</span>
+              <span className="profile-copy">
+                <strong>{roleLabels[role]}</strong>
+                <small>Connected · Clinical Access</small>
+              </span>
             </div>
           </div>
         </aside>
 
-        <div className="page-column">
+        <div className={`page-column${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
           {isOffline && <div className="offline-banner" role="status"><span aria-hidden="true">!</span> You're offline. Demo records are available on this device only.</div>}
           <header className="topbar">
             <IconButton className="menu-button" label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}><Menu /></IconButton>
-            <div className="breadcrumb"><span>MediPath</span><span className="crumb-separator">/</span><strong>{currentTitle}</strong></div>
+            <div className="breadcrumb">
+              <span>MediPath</span>
+              <span className="crumb-separator">/</span>
+              <span>Clinical Workspace</span>
+              <span className="crumb-separator">/</span>
+              <strong>{currentTitle}</strong>
+            </div>
             <div className="topbar-tools">
+              <span className="operational-status-pill">
+                <span className="pulse-indicator" aria-hidden="true" />
+                <span>System Operational</span>
+              </span>
               <span className="demo-label"><span />Demo workspace</span>
               {(role === "admin" || role === "front-desk") && <Button variant="primary" className="topbar-book" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>}
               <div className="search-container">
@@ -1671,7 +1765,9 @@ function App() {
             </div>
           </header>
           <main className="main-content" id="main-content" tabIndex={-1} ref={mainRef}>
-            {renderPage()}
+            <div className="page-transition-enter" key={view}>
+              {renderPage()}
+            </div>
           </main>
         </div>
         {mobileNavOpen && <button className="sidebar-scrim is-visible" type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
