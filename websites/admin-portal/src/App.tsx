@@ -51,7 +51,12 @@ import {
 import type {
   Appointment,
   AvailabilityItem,
+  DiagnosticRecord,
+  FollowupItem,
+  PatientRecord,
+  PaymentRecord,
   QueueItem,
+  ScheduleRow,
   StatusKind,
   ViewId,
 } from "./data";
@@ -70,9 +75,8 @@ type Overlay =
 type ActionId = "patient-info" | "diagnostics-info" | "partner-info" | "settings-help";
 type Theme = "light" | "dark";
 type WorkspaceRole = "admin" | "doctor" | "front-desk";
-type PaymentRecord = typeof initialPaymentRows[number];
 
-const themeStorageKey = "medipath-clinic-theme";
+const themeStorageKey = "medipath-admin-theme";
 const roleLabels: Record<WorkspaceRole, string> = {
   admin: "Clinic admin",
   doctor: "Doctor",
@@ -251,14 +255,22 @@ function Panel({
   children,
   action,
   className = "",
+  onClick,
 }: {
   title: string;
   children: ReactNode;
   action?: ReactNode;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
-    <section className={`panel ${className}`.trim()}>
+    <section 
+      className={`panel ${className} ${onClick ? "panel-interactive" : ""}`.trim()}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <div className="panel-header">
         <div className="panel-heading"><h2>{title}</h2></div>
         {action}
@@ -545,10 +557,12 @@ function AvailabilityEditor({
 
 function AppointmentBooking({
   appointments,
+  patients,
   onComplete,
   onCancel,
 }: {
   appointments: Appointment[];
+  patients: PatientRecord[];
   onComplete: (appointment: Omit<Appointment, "id" | "status" | "updated" | "type">) => void;
   onCancel: () => void;
 }) {
@@ -601,12 +615,22 @@ function AppointmentBooking({
       <div className="modal-body">
         {step === 0 && <>
           <div className="form-field">
-            <label htmlFor="booking-patient">Patient record</label>
-            <select id="booking-patient" {...register("patient")}>
-              <option value="">Choose a patient</option>
-              {patientRows.map((entry) => <option key={entry.id} value={entry.patient}>{entry.patient}</option>)}
-            </select>
-            <span className="field-hint">Select from registered hospital patient records.</span>
+            <label htmlFor="booking-patient">Patient record or name</label>
+            <input
+              id="booking-patient"
+              list="patients-directory-list"
+              placeholder="Enter patient name or select..."
+              autoComplete="off"
+              {...register("patient")}
+            />
+            <datalist id="patients-directory-list">
+              {patients.map((entry) => (
+                <option key={entry.id} value={entry.patient}>
+                  {entry.patient} ({entry.id})
+                </option>
+              ))}
+            </datalist>
+            <span className="field-hint">Select a registered patient or type a new patient name.</span>
             {errors.patient?.message && <span className="form-error" role="alert">{errors.patient.message}</span>}
           </div>
           <div className="form-field">
@@ -740,6 +764,9 @@ function App() {
   const [isOffline, setIsOffline] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityItem[]>(initialAvailability);
   const [queue, setQueue] = useState<QueueItem[]>(initialQueue);
+  const [patients, setPatients] = useState<PatientRecord[]>(patientRows);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticRecord[]>(diagnosticRows);
+  const [followups, setFollowups] = useState<FollowupItem[]>(initialFollowups);
   const [reviewed, setReviewed] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -772,6 +799,29 @@ function App() {
       meta.setAttribute("content", theme === "dark" ? "#0E1624" : "#EDF5FF");
     });
   }, [theme, themeReady]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadLiveData() {
+      try {
+        const [appRes, qRes, patRes, payRes] = await Promise.all([
+          fetch("/api/appointments").then((r) => r.ok ? r.json() : null),
+          fetch("/api/queue").then((r) => r.ok ? r.json() : null),
+          fetch("/api/patients").then((r) => r.ok ? r.json() : null),
+          fetch("/api/payments").then((r) => r.ok ? r.json() : null),
+        ]);
+        if (!isMounted) return;
+        if (appRes?.appointments?.length) setAppointments(appRes.appointments);
+        if (qRes?.queue?.length) setQueue(qRes.queue);
+        if (patRes?.patients?.length) setPatients(patRes.patients);
+        if (payRes?.payments?.length) setPayments(payRes.payments);
+      } catch (err) {
+        console.error("Live data load error:", err);
+      }
+    }
+    loadLiveData();
+    return () => { isMounted = false; };
+  }, []);
 
   const currentTitle = navItems.find((item) => item.id === view)?.label ?? "Overview";
   const pendingAppointments = appointments.filter((item) => item.type === "pending");
@@ -898,48 +948,127 @@ function App() {
   function updateAppointment(id: string, next: "confirmed" | "cancelled") {
     const status = next === "confirmed" ? "Confirmed" : "Cancelled";
     setAppointments((items) => items.map((item) => item.id === id
-      ? { ...item, type: next, status, updated: "just now" }
+      ? { ...item, type: next, status, updated: "Just now" }
       : item));
+    try {
+      fetch("/api/appointments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status, type: next }),
+      });
+    } catch {}
     closeOverlay();
     notify(`Clinical request ${next} successfully.`);
   }
 
   function completeBooking(details: Omit<Appointment, "id" | "status" | "updated" | "type">) {
-    const nextId = `MP-${2049 + appointments.length - initialAppointments.length}`;
-    setAppointments((items) => [{
+    const nextId = `APT-${Date.now().toString().slice(-4)}`;
+    const newAppointment: Appointment = {
       ...details,
       id: nextId,
       status: "Confirmed",
-      updated: "just now",
+      updated: "Just now",
       type: "confirmed",
-    }, ...items]);
+    };
+    setAppointments((items) => [newAppointment, ...items]);
+
+    const existingPatient = patients.find((p) => p.patient.toLowerCase() === details.patient.toLowerCase());
+    if (!existingPatient) {
+      const newPatient: PatientRecord = {
+        id: `PT-${1000 + patients.length + 1}`,
+        patient: details.patient,
+        lastVisit: `${details.date}, ${details.time}`,
+        detail: details.service,
+        status: "Confirmed",
+        kind: "confirmed",
+      };
+      setPatients((prev) => [newPatient, ...prev]);
+      try {
+        fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newPatient),
+        });
+      } catch {}
+    }
+
+    try {
+      fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAppointment),
+      });
+    } catch {}
+
     closeOverlay();
     notify("Appointment scheduled successfully.");
   }
 
   function checkInAppointment(id: string) {
     const appointment = appointments.find((item) => item.id === id);
-    if (!appointment || appointment.type !== "confirmed") return;
-    const token = `Q-${String(20 + queue.length).padStart(3, "0")}`;
+    if (!appointment || (appointment.type !== "confirmed" && appointment.type !== "pending")) return;
+    const token = `Q-${String(100 + queue.length + 1).padStart(3, "0")}`;
     setAppointments((items) => items.map((item) => item.id === id
-      ? { ...item, type: "arrived", status: "Checked in", updated: "just now" }
+      ? { ...item, type: "arrived", status: "Checked in", updated: "Just now" }
       : item));
-    setQueue((items) => [...items, {
+    const newQueueItem: QueueItem = {
       token,
       patient: appointment.patient,
       service: appointment.service,
       arrival: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()),
       status: "Waiting",
       kind: "pending",
-    }]);
+    };
+    setQueue((items) => [...items, newQueueItem]);
+
+    const newPayment: PaymentRecord = {
+      id: `INV-${1000 + payments.length + 1}`,
+      patient: appointment.patient,
+      service: appointment.service,
+      amount: 650,
+      method: "Pending",
+      status: "Due",
+      kind: "pending",
+      date: getLocalDateValue(),
+    };
+    setPayments((items) => [newPayment, ...items]);
+
+    try {
+      fetch("/api/appointments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "Checked in", type: "arrived" }),
+      });
+      fetch("/api/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newQueueItem),
+      });
+      fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPayment),
+      });
+    } catch {}
+
     closeOverlay();
-    notify(`${appointment.patient} checked in · ${token} added to active queue.`);
+    notify(`${appointment.patient} checked in · ${token} issued to active queue.`);
   }
 
   function completePayment(id: string, method: string) {
     setPayments((items) => items.map((item) => item.id === id
       ? { ...item, method, status: "Paid", kind: "completed" }
       : item));
+    const paidItem = payments.find((p) => p.id === id);
+    if (paidItem) {
+      try {
+        fetch("/api/payments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...paidItem, method, status: "Paid", kind: "completed" }),
+        });
+      } catch {}
+    }
     setOverlay({ kind: "receipt", id });
     notify("Payment recorded successfully. Receipt is ready to print.");
   }
@@ -950,24 +1079,54 @@ function App() {
     const patient = String(form.get("patient") ?? "").trim();
     const service = String(form.get("service") ?? "");
     const time = String(form.get("time") ?? "");
-    if (!/^Patient [•*]{4} \d{4}$/.test(patient) || !service || !time) {
+    if (!patient || !service || !time) {
       notify("Please verify all required clinical fields.", "info");
       return;
     }
-    const nextId = `MP-${2049 + appointments.length - initialAppointments.length}`;
-    setAppointments((items) => [{
+    const nextId = `APT-${Date.now().toString().slice(-4)}`;
+    const newAppointment: Appointment = {
       id: nextId,
       date: getLocalDateValue(),
       patient,
       service,
-      clinician: "Clinic team",
+      clinician: doctors[0].name,
       time,
-      status: "Awaiting confirmation",
-      updated: "just now",
-      type: "pending",
-    }, ...items]);
+      status: "Confirmed",
+      updated: "Just now",
+      type: "confirmed",
+    };
+    setAppointments((items) => [newAppointment, ...items]);
+
+    const existingPatient = patients.find((p) => p.patient.toLowerCase() === patient.toLowerCase());
+    if (!existingPatient) {
+      const newPatient: PatientRecord = {
+        id: `PT-${1000 + patients.length + 1}`,
+        patient,
+        lastVisit: `${getLocalDateValue()}, ${time}`,
+        detail: service,
+        status: "Confirmed",
+        kind: "confirmed",
+      };
+      setPatients((prev) => [newPatient, ...prev]);
+      try {
+        fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newPatient),
+        });
+      } catch {}
+    }
+
+    try {
+      fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAppointment),
+      });
+    } catch {}
+
     closeOverlay();
-    notify("Clinical service request submitted successfully.");
+    notify("Appointment scheduled successfully.");
   }
 
   function advanceQueue(token: string) {
@@ -978,7 +1137,16 @@ function App() {
     setQueue((items) => items.map((entry) => entry.token === token
       ? { ...entry, status: nextStatus, kind: nextKind }
       : entry));
-    notify(`${token} queue status updated.`);
+
+    try {
+      fetch("/api/queue", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, status: nextStatus, kind: nextKind }),
+      });
+    } catch {}
+
+    notify(`${token} queue status updated to ${nextStatus}.`);
   }
 
   function markReviewed(id: string) {
@@ -997,7 +1165,7 @@ function App() {
   }
 
   function renderOverview() {
-    const followupCount = initialFollowups.filter((item) => !reviewed.has(item.id)).length;
+    const followupCount = followups.filter((item) => !reviewed.has(item.id)).length;
     const todaysAppointments = appointments.filter((item) => item.date === getLocalDateValue());
     const doctorAppointments = appointments.filter((item) => item.clinician === doctors[0].name && item.date === getLocalDateValue());
     const visiblePending = pendingAppointments.filter((item) => (
@@ -1065,7 +1233,7 @@ function App() {
           <div className="right-stack">
             {role === "admin" && <Panel title="Follow-ups to review" action={<button className="text-link" type="button" onClick={() => navigate("followups")}>Open list</button>}>
               <div className="followup-list">
-                {initialFollowups.map((item) => (
+                {followups.length ? followups.map((item) => (
                   <label className={`followup-item${reviewed.has(item.id) ? " is-complete" : ""}`} key={item.id}>
                     <input
                       className="followup-check"
@@ -1086,31 +1254,49 @@ function App() {
                     />
                     <span className="followup-copy"><strong>{item.title}</strong><small>{item.detail}<br />{reviewed.has(item.id) ? "Reviewed" : item.due}</small></span>
                   </label>
-                ))}
+                )) : <p className="search-empty" style={{ padding: "16px", margin: 0 }}>No pending follow-ups</p>}
               </div>
             </Panel>}
-            {role === "admin" && <Panel title="Availability check">
-              <div className="availability-card">
-                <div className="availability-heading">
-                  <span><strong>{staleServices.length ? "Review required" : "Services operational"}</strong><small>{staleServices.length ? `${staleServices.length} need review` : "All clinical services active"}</small></span>
-                  {staleServices.length ? <StatusBadge label="Stale" kind="stale" /> : <StatusBadge label="Current" kind="current" />}
+            {role === "admin" && (
+              <Panel 
+                title="Availability check" 
+                onClick={() => navigate("services")}
+                action={<span className="text-link">Open services →</span>}
+              >
+                <div className="availability-card" style={{ border: "none", background: "transparent", padding: "16px 20px", boxShadow: "none" }}>
+                  <div className="availability-heading" style={{ margin: 0 }}>
+                    <span><strong>{staleServices.length ? "Review required" : "Services operational"}</strong><small>{staleServices.length ? `${staleServices.length} need review` : "All clinical services active"}</small></span>
+                    {staleServices.length ? <StatusBadge label="Stale" kind="stale" /> : <StatusBadge label="Current" kind="current" />}
+                  </div>
                 </div>
-                <div className="availability-foot">
-                  <span>{staleServices.length ? `${staleServices.length} updates pending` : "All systems active"}</span>
-                  <button type="button" onClick={() => handleAction("availability-review")}>Review services</button>
+              </Panel>
+            )}
+            {role === "doctor" && (
+              <Panel 
+                title="Your weekly availability" 
+                onClick={() => navigate("availability")}
+                action={<span className="text-link">Edit hours →</span>}
+              >
+                <div className="availability-card" style={{ border: "none", background: "transparent", padding: "16px 20px", boxShadow: "none" }}>
+                  <div className="availability-heading" style={{ margin: 0 }}>
+                    <span><strong>{Object.values(weeklyAvailability).filter((hours) => hours.enabled).length} days enabled</strong><small>Regular weekly hours</small></span>
+                    <StatusBadge label="Active" kind="available" />
+                  </div>
                 </div>
-              </div>
-            </Panel>}
-            {role === "doctor" && <Panel title="Your weekly availability" action={<button className="text-link" type="button" onClick={() => navigate("availability")}>Edit hours</button>}>
-              <div className="availability-card"><div className="availability-heading"><span><strong>{Object.values(weeklyAvailability).filter((hours) => hours.enabled).length} days enabled</strong><small>Regular weekly hours</small></span><StatusBadge label="Active" kind="available" /></div></div>
-            </Panel>}
-            {(role === "admin" || role === "front-desk") && <Panel title="Queue snapshot">
-              <div className="queue-summary">
-                <div className="queue-stat"><strong>{String(waitingQueue.length).padStart(2, "0")}</strong><span>Waiting</span></div>
-                <div className="queue-stat"><strong>{String(activeQueue.length).padStart(2, "0")}</strong><span>In consultation</span></div>
-              </div>
-              <div className="availability-foot queue-foot"><span>Live patient queue</span><button type="button" onClick={() => navigate("queue")}>Open queue</button></div>
-            </Panel>}
+              </Panel>
+            )}
+            {(role === "admin" || role === "front-desk") && (
+              <Panel 
+                title="Queue snapshot" 
+                onClick={() => navigate("queue")}
+                action={<span className="text-link">Open queue →</span>}
+              >
+                <div className="queue-summary" style={{ padding: "16px 20px 20px" }}>
+                  <div className="queue-stat"><strong>{String(waitingQueue.length).padStart(2, "0")}</strong><span>Waiting</span></div>
+                  <div className="queue-stat"><strong>{String(activeQueue.length).padStart(2, "0")}</strong><span>In consultation</span></div>
+                </div>
+              </Panel>
+            )}
           </div>
         </div>
       </>
@@ -1214,8 +1400,8 @@ function App() {
 
   function renderPatients() {
     const patientRecords = role === "doctor"
-      ? patientRows.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
-      : patientRows;
+      ? patients.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
+      : patients;
     const rows = filterValues(patientRecords, ["id", "patient", "detail", "status"]);
     return (
       <>
@@ -1309,7 +1495,7 @@ function App() {
   }
 
   function renderDiagnostics() {
-    const rows = filterValues(diagnosticRows, ["time", "patient", "service", "status"]);
+    const rows = filterValues(diagnostics, ["time", "patient", "service", "status"]);
     return (
       <>
         <PageHeading eyebrow="WORKSPACE · DIAGNOSTICS" title="Diagnostics" subtitle="Track external diagnostic referrals without implying that this clinic operates a lab." actions={<Button onClick={() => handleAction("diagnostics-info")}><ArrowUpRight />Referral guidance</Button>} />
@@ -1328,7 +1514,7 @@ function App() {
   }
 
   function renderFollowups() {
-    const rows = initialFollowups.map((item) => ({
+    const rows = followups.map((item) => ({
       ...item,
       patient: item.detail.split(" · ")[0],
       status: item.id === "FU-074" ? "Needs review" : "Action needed",
@@ -1459,6 +1645,7 @@ function App() {
                   : <Button variant="primary" className="table-action-button" onClick={() => setOverlay({ kind: "payment", id: item.id })}>Take payment</Button>}</td>
               </tr>)}</tbody>
             </table>
+            {!payments.length && <div className="empty-state"><strong>No payment records yet</strong><span>Invoices and payments recorded for patient visits will appear here.</span></div>}
           </div>
         </Panel>
       </>
@@ -1566,7 +1753,7 @@ function App() {
     if (!overlay) return null;
     if (overlay.kind === "booking") {
       return <DialogFrame title="Book an appointment" description="Choose a patient, select an available doctor and time, then confirm." onClose={closeOverlay}>
-        <AppointmentBooking appointments={appointments} onComplete={completeBooking} onCancel={closeOverlay} />
+        <AppointmentBooking appointments={appointments} patients={patients} onComplete={completeBooking} onCancel={closeOverlay} />
       </DialogFrame>;
     }
     if (overlay.kind === "payment") {
@@ -1621,7 +1808,7 @@ function App() {
       );
     }
     if (overlay.kind === "patient-profile") {
-      const patient = patientRows.find((p) => p.id === overlay.id);
+      const patient = patients.find((p) => p.id === overlay.id);
       if (!patient) return null;
       const patientAppointments = appointments.filter((a) => a.patient === patient.patient);
       const patientPayments = payments.filter((p) => p.patient === patient.patient);
@@ -1750,8 +1937,8 @@ function App() {
   };
   const searchTerm = query.trim().toLowerCase();
   const patientSearchRecords = role === "doctor"
-    ? patientRows.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
-    : patientRows;
+    ? patients.filter((patient) => appointments.some((appointment) => appointment.clinician === doctors[0].name && appointment.patient === patient.patient))
+    : patients;
   const doctorSearchResults = role === "front-desk" ? [] : doctors
     .filter((item) => `${item.name} ${item.specialty}`.toLowerCase().includes(searchTerm))
     .map((item) => ({ kind: "doctor" as const, id: item.name, title: item.name, detail: `${item.specialty} · Doctor` }));
