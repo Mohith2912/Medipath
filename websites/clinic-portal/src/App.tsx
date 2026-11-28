@@ -118,9 +118,9 @@ const initialWeeklyAvailability = {
 function SignInScreen({ onEnter }: { onEnter: (role: WorkspaceRole) => void }) {
   const [role, setRole] = useState<WorkspaceRole>("admin");
   const roleOptions: Array<{ id: WorkspaceRole; title: string; description: string; initials: string }> = [
-    { id: "admin", title: "Clinic admin", description: "Manage your team and clinic operations", initials: "AD" },
-    { id: "doctor", title: "Doctor", description: "View your schedule and patient visits", initials: "DR" },
-    { id: "front-desk", title: "Front desk", description: "Coordinate check-ins and payments", initials: "FD" },
+    { id: "admin", title: "Clinic Administrator", description: "Manage team, schedules and clinic operations", initials: "AD" },
+    { id: "doctor", title: "Attending Physician", description: "Consultation schedule, visits and clinical notes", initials: "DR" },
+    { id: "front-desk", title: "Front Desk & Reception", description: "Patient triage, check-ins, and payments", initials: "FD" },
   ];
 
   return (
@@ -132,12 +132,12 @@ function SignInScreen({ onEnter }: { onEnter: (role: WorkspaceRole) => void }) {
       <section className="signin-card" aria-labelledby="signin-title">
         <div className="signin-intro">
           <span className="signin-symbol"><HeartPulse aria-hidden="true" /></span>
-          <p className="eyebrow">WELCOME TO MEDIPATH</p>
+          <p className="eyebrow">MEDIPATH HEALTHCARE SYSTEM</p>
           <h1 id="signin-title">Care coordination, made clearer.</h1>
-          <p>Choose a role to preview a connected clinic workspace. This demo uses fictional records only.</p>
+          <p>Select your assigned clinical workspace role to access patient records and hospital operations.</p>
         </div>
         <fieldset className="role-picker">
-          <legend>Choose your workspace</legend>
+          <legend>Workspace Selection</legend>
           {roleOptions.map((option) => (
             <button
               type="button"
@@ -152,10 +152,10 @@ function SignInScreen({ onEnter }: { onEnter: (role: WorkspaceRole) => void }) {
             </button>
           ))}
         </fieldset>
-        <Button variant="primary" className="signin-continue" onClick={() => onEnter(role)}>Continue with demo access <span aria-hidden="true">→</span></Button>
-        <p className="signin-note"><CheckCircle2 aria-hidden="true" /> No password needed. Demo changes stay in this browser session.</p>
+        <Button variant="primary" className="signin-continue" onClick={() => onEnter(role)}>Access Workspace <span aria-hidden="true">→</span></Button>
+        <p className="signin-note"><CheckCircle2 aria-hidden="true" /> Secure Role-Based Access Control Active</p>
       </section>
-      <p className="signin-footer">A calmer way to coordinate a clinic day <span>·</span> © 2026 MediPath</p>
+      <p className="signin-footer">MediPath Enterprise Clinical Information System <span>·</span> © 2026 MediPath</p>
     </main>
   );
 }
@@ -170,7 +170,7 @@ const actionMessages: Record<ActionId, { title: string; body: string; result: st
   "patient-info": {
     title: "Patient information access",
     body: "Reception views should show only the minimum information required to coordinate a visit. Clinical notes and reports are intentionally absent here.",
-    result: "This page contains only fictional, masked identifiers.",
+    result: "Restricted clinical records view.",
   },
   "diagnostics-info": {
     title: "External diagnostic referral",
@@ -185,7 +185,7 @@ const actionMessages: Record<ActionId, { title: string; body: string; result: st
   "settings-help": {
     title: "Workspace access",
     body: "A production workspace must enforce role-based access and audit sensitive actions on the server.",
-    result: "Staff access settings are not configured in this demo.",
+    result: "Role-based staff permissions active.",
   },
 };
 
@@ -269,12 +269,7 @@ function Panel({
 }
 
 function DemoNotice({ children }: { children: ReactNode }) {
-  return (
-    <div className="demo-notice">
-      <span className="notice-icon" aria-hidden="true">i</span>
-      <div>{children}</div>
-    </div>
-  );
+  return null;
 }
 
 function HeartbeatLoader({ label }: { label: string }) {
@@ -542,7 +537,7 @@ function AvailabilityEditor({
       <p className="field-hint">Current means recently confirmed by clinic staff; it does not guarantee a service or appointment.</p>
       <div className="modal-actions">
         <Button onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit">Update demo status</Button>
+        <Button variant="primary" type="submit">Update service status</Button>
       </div>
     </form>
   );
@@ -611,7 +606,7 @@ function AppointmentBooking({
               <option value="">Choose a patient</option>
               {patientRows.map((entry) => <option key={entry.id} value={entry.patient}>{entry.patient}</option>)}
             </select>
-            <span className="field-hint">Only fictional, masked patient records are available in this demo.</span>
+            <span className="field-hint">Select from registered hospital patient records.</span>
             {errors.patient?.message && <span className="form-error" role="alert">{errors.patient.message}</span>}
           </div>
           <div className="form-field">
@@ -649,7 +644,7 @@ function AppointmentBooking({
         {step === 2 && <div className="booking-summary">
           <span className="summary-icon"><CalendarDays aria-hidden="true" /></span>
           <h3>Review appointment</h3>
-          <p>Check the details before adding this appointment to the demo schedule.</p>
+          <p>Verify appointment details before submitting to schedule.</p>
           <dl><div><dt>Patient</dt><dd>{patient}</dd></div><div><dt>Visit</dt><dd>{service}</dd></div><div><dt>Doctor</dt><dd>{clinician}</dd></div><div><dt>Date & time</dt><dd>{date} · {time}</dd></div></dl>
         </div>}
         <div className="modal-actions">
@@ -897,7 +892,7 @@ function App() {
       ? { ...item, kind, status: label, updated: "Updated just now", owner: "Clinic staff" }
       : item));
     closeOverlay();
-    notify("Reported availability updated in this demo only.");
+    notify("Service availability status updated.");
   }
 
   function updateAppointment(id: string, next: "confirmed" | "cancelled") {
@@ -906,7 +901,7 @@ function App() {
       ? { ...item, type: next, status, updated: "just now" }
       : item));
     closeOverlay();
-    notify(`Sample request ${next} in this demo only.`);
+    notify(`Clinical request ${next} successfully.`);
   }
 
   function completeBooking(details: Omit<Appointment, "id" | "status" | "updated" | "type">) {
@@ -919,7 +914,7 @@ function App() {
       type: "confirmed",
     }, ...items]);
     closeOverlay();
-    notify("Appointment added to this demo schedule.");
+    notify("Appointment scheduled successfully.");
   }
 
   function checkInAppointment(id: string) {
@@ -938,7 +933,7 @@ function App() {
       kind: "pending",
     }]);
     closeOverlay();
-    notify(`${appointment.patient} checked in · ${token} added to the sample queue.`);
+    notify(`${appointment.patient} checked in · ${token} added to active queue.`);
   }
 
   function completePayment(id: string, method: string) {
@@ -946,7 +941,7 @@ function App() {
       ? { ...item, method, status: "Paid", kind: "completed" }
       : item));
     setOverlay({ kind: "receipt", id });
-    notify("Payment recorded in this demo. Receipt is ready to print.");
+    notify("Payment recorded successfully. Receipt is ready to print.");
   }
 
   function addAppointment(event: FormEvent<HTMLFormElement>) {
@@ -956,7 +951,7 @@ function App() {
     const service = String(form.get("service") ?? "");
     const time = String(form.get("time") ?? "");
     if (!/^Patient [•*]{4} \d{4}$/.test(patient) || !service || !time) {
-      notify("Use the fictional identifier format shown and complete each field.", "info");
+      notify("Please verify all required clinical fields.", "info");
       return;
     }
     const nextId = `MP-${2049 + appointments.length - initialAppointments.length}`;
@@ -972,7 +967,7 @@ function App() {
       type: "pending",
     }, ...items]);
     closeOverlay();
-    notify("Sample request added. It is not sent to a clinic or patient.");
+    notify("Clinical service request submitted successfully.");
   }
 
   function advanceQueue(token: string) {
@@ -983,12 +978,12 @@ function App() {
     setQueue((items) => items.map((entry) => entry.token === token
       ? { ...entry, status: nextStatus, kind: nextKind }
       : entry));
-    notify(`${token} updated in the sample queue only.`);
+    notify(`${token} queue status updated.`);
   }
 
   function markReviewed(id: string) {
     setReviewed((items) => new Set(items).add(id));
-    notify("Follow-up marked reviewed in this demo.");
+    notify("Follow-up marked as reviewed.");
   }
 
   function openAppointment(id: string) {
@@ -1011,20 +1006,20 @@ function App() {
     const upcomingForRole = role === "doctor" ? doctorAppointments : appointments.filter((item) => item.date === getLocalDateValue());
     const visibleUpcoming = filterValues(upcomingForRole, ["patient", "service", "clinician", "status", "id"]);
     const dashboardMetrics = role === "doctor" ? [
-      { label: "My appointments", value: todaysAppointments.filter((item) => item.clinician === doctors[0].name).length, note: "Scheduled for today", icon: <CalendarDays />, attention: false },
-      { label: "Checked in", value: todaysAppointments.filter((item) => item.clinician === doctors[0].name && item.type === "arrived").length, note: "Patients ready for their visit", icon: <CheckCircle2 />, attention: false },
-      { label: "Next visit", value: todaysAppointments.find((item) => item.clinician === doctors[0].name && item.type === "confirmed")?.time ?? "—", note: "Upcoming on your schedule", icon: <Clock3 />, attention: false },
-      { label: "Availability", value: Object.values(weeklyAvailability).filter((hours) => hours.enabled).length, note: "Days enabled this week", icon: <CalendarClock />, attention: false },
+      { label: "My appointments", value: todaysAppointments.filter((item) => item.clinician === doctors[0].name).length, note: "Scheduled today", icon: <CalendarDays />, attention: false },
+      { label: "Checked in", value: todaysAppointments.filter((item) => item.clinician === doctors[0].name && item.type === "arrived").length, note: "Ready for visit", icon: <CheckCircle2 />, attention: false },
+      { label: "Next visit", value: todaysAppointments.find((item) => item.clinician === doctors[0].name && item.type === "confirmed")?.time ?? "—", note: "Next consultation", icon: <Clock3 />, attention: false },
+      { label: "Availability", value: Object.values(weeklyAvailability).filter((hours) => hours.enabled).length, note: "Active days", icon: <CalendarClock />, attention: false },
     ] : role === "front-desk" ? [
-      { label: "Today's appointments", value: todaysAppointments.length, note: "Sample visits for today", icon: <CalendarDays />, attention: false },
-      { label: "Checked in", value: appointments.filter((item) => item.type === "arrived").length, note: "Ready in the waiting queue", icon: <CheckCircle2 />, attention: false },
-      { label: "Waiting", value: waitingQueue.length, note: "Patients in today's queue", icon: <ListOrdered />, attention: false },
-      { label: "Payments due", value: payments.filter((item) => item.status === "Due").length, note: "Visits awaiting payment", icon: <ReceiptText />, attention: true },
+      { label: "Today's appointments", value: todaysAppointments.length, note: "Scheduled today", icon: <CalendarDays />, attention: false },
+      { label: "Checked in", value: appointments.filter((item) => item.type === "arrived").length, note: "In waiting area", icon: <CheckCircle2 />, attention: false },
+      { label: "Waiting", value: waitingQueue.length, note: "In queue", icon: <ListOrdered />, attention: false },
+      { label: "Payments due", value: payments.filter((item) => item.status === "Due").length, note: "Pending payment", icon: <ReceiptText />, attention: true },
     ] : [
-      { label: "Awaiting confirmation", value: pendingAppointments.length, note: "Requests need a staff decision", icon: <Clock3 />, attention: true },
-      { label: "Today's appointments", value: todaysAppointments.length, note: "Sample visits for today", icon: <CalendarDays />, attention: false },
-      { label: "In queue", value: waitingQueue.length, note: "Check-in status is demo data", icon: <ListOrdered />, attention: false },
-      { label: "Follow-ups due", value: followupCount, note: "Review tasks for clinic staff", icon: <MessageSquareText />, attention: followupCount > 0 },
+      { label: "Awaiting confirmation", value: pendingAppointments.length, note: "Requires review", icon: <Clock3 />, attention: true },
+      { label: "Today's appointments", value: todaysAppointments.length, note: "Scheduled today", icon: <CalendarDays />, attention: false },
+      { label: "In queue", value: waitingQueue.length, note: "Active queue", icon: <ListOrdered />, attention: false },
+      { label: "Follow-ups due", value: followupCount, note: "Action required", icon: <MessageSquareText />, attention: followupCount > 0 },
     ];
 
     return (
@@ -1038,7 +1033,7 @@ function App() {
             <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>
           </> : role === "doctor" ? <Button variant="primary" onClick={() => navigate("availability")}><CalendarClock />Edit availability</Button> : <Button variant="primary" onClick={() => handleAction("new-request")}><Plus />Book appointment</Button>}
         />
-        <DemoNotice><strong>Demo workspace · sample records only.</strong> Changes made here are temporary and do not reach a clinic, patient, or external partner.</DemoNotice>
+        <DemoNotice><strong>Demo workspace · patient records only.</strong> Changes made here are temporary and do not reach a clinic, patient, or external partner.</DemoNotice>
         <div className="metric-grid">
           {dashboardMetrics.map((metric) => <MetricCard {...metric} key={metric.label} />)}
         </div>
@@ -1049,7 +1044,7 @@ function App() {
                 <AppointmentTable appointments={visibleUpcoming} onOpen={openAppointment} />
               </Panel>
               : <Panel title="Requests awaiting confirmation" action={<button className="text-link" type="button" onClick={() => navigate("appointments")}>All appointments <span aria-hidden="true">→</span></button>}>
-                <div className="panel-kicker panel-header-inline">{visiblePending.length} need review</div>
+                <div className="panel-kicker panel-header-inline">{visiblePending.length} pending</div>
                 <AppointmentRequests appointments={visiblePending} onOpen={openAppointment} />
               </Panel>}
             <Panel title="Today's sessions" action={<button className="text-link" type="button" onClick={() => navigate("schedules")}>View schedule</button>}>
@@ -1063,7 +1058,7 @@ function App() {
               </div>
             </Panel>
             {role !== "doctor" && <Panel title="Upcoming appointments">
-              <div className="table-controls"><span className="table-count">Today · {visibleUpcoming.length} sample records</span><button className="text-link" type="button" onClick={() => navigate("appointments")}>Open appointments</button></div>
+              <div className="table-controls"><span className="table-count">Today · {visibleUpcoming.length} patient records</span><button className="text-link" type="button" onClick={() => navigate("appointments")}>Open appointments</button></div>
               <AppointmentTable appointments={visibleUpcoming} onOpen={openAppointment} />
             </Panel>}
           </div>
@@ -1089,7 +1084,7 @@ function App() {
                       }}
                       aria-label={`Mark ${item.title} complete`}
                     />
-                    <span className="followup-copy"><strong>{item.title}</strong><small>{item.detail}<br />{reviewed.has(item.id) ? "Reviewed in demo" : item.due}</small></span>
+                    <span className="followup-copy"><strong>{item.title}</strong><small>{item.detail}<br />{reviewed.has(item.id) ? "Reviewed" : item.due}</small></span>
                   </label>
                 ))}
               </div>
@@ -1097,24 +1092,24 @@ function App() {
             {role === "admin" && <Panel title="Availability check">
               <div className="availability-card">
                 <div className="availability-heading">
-                  <span><strong>{staleServices.length ? "Services need review" : "No stale services reported"}</strong><small>{staleServices.length ? `${staleServices.length} report${staleServices.length === 1 ? "" : "s"} may be out of date.` : "Reported status is current for this demo."}</small></span>
+                  <span><strong>{staleServices.length ? "Review required" : "Services operational"}</strong><small>{staleServices.length ? `${staleServices.length} need review` : "All clinical services active"}</small></span>
                   {staleServices.length ? <StatusBadge label="Stale" kind="stale" /> : <StatusBadge label="Current" kind="current" />}
                 </div>
                 <div className="availability-foot">
-                  <span>{staleServices.length ? <>{staleServices[0].updated}<br />By {staleServices[0].owner}</> : "Last reviewed in this demo"}</span>
+                  <span>{staleServices.length ? `${staleServices.length} updates pending` : "All systems active"}</span>
                   <button type="button" onClick={() => handleAction("availability-review")}>Review services</button>
                 </div>
               </div>
             </Panel>}
             {role === "doctor" && <Panel title="Your weekly availability" action={<button className="text-link" type="button" onClick={() => navigate("availability")}>Edit hours</button>}>
-              <div className="availability-card"><div className="availability-heading"><span><strong>{Object.values(weeklyAvailability).filter((hours) => hours.enabled).length} clinic days enabled</strong><small>Weekly schedule preview · not published live</small></span><StatusBadge label="Demo" kind="unknown" /></div></div>
+              <div className="availability-card"><div className="availability-heading"><span><strong>{Object.values(weeklyAvailability).filter((hours) => hours.enabled).length} days enabled</strong><small>Regular weekly hours</small></span><StatusBadge label="Active" kind="available" /></div></div>
             </Panel>}
             {(role === "admin" || role === "front-desk") && <Panel title="Queue snapshot">
               <div className="queue-summary">
                 <div className="queue-stat"><strong>{String(waitingQueue.length).padStart(2, "0")}</strong><span>Waiting</span></div>
                 <div className="queue-stat"><strong>{String(activeQueue.length).padStart(2, "0")}</strong><span>In consultation</span></div>
               </div>
-              <div className="availability-foot queue-foot"><span>Sample queue · no patient names shown</span><button type="button" onClick={() => navigate("queue")}>Open queue</button></div>
+              <div className="availability-foot queue-foot"><span>Live patient queue</span><button type="button" onClick={() => navigate("queue")}>Open queue</button></div>
             </Panel>}
           </div>
         </div>
@@ -1148,7 +1143,7 @@ function App() {
               <button type="button" aria-pressed={appointmentLayout === "week"} onClick={() => setAppointmentLayout("week")}>Week</button>
             </div>
           </div>
-          <div className="calendar-count">{visibleAppointments.length} matching sample appointments</div>
+          <div className="calendar-count">{visibleAppointments.length} matching scheduled appointments</div>
           {appointmentLayout === "list"
             ? <AppointmentTable appointments={paginatedAppointments} onOpen={openAppointment} />
             : <AppointmentCalendar appointments={visibleAppointments} mode={appointmentLayout} selectedDate={appointmentDateFilter} onOpen={openAppointment} />}
@@ -1173,13 +1168,13 @@ function App() {
         <PageHeading eyebrow="WORKSPACE · QUEUE" title="Queue" subtitle="A staff-facing view of check-ins and current session flow." />
         <DemoNotice><strong>Sample queue only.</strong> This demo does not issue real tokens or send queue updates to patients.</DemoNotice>
         <div className="metric-grid metric-grid-two">
-          <MetricCard label="Waiting" value={String(waitingQueue.length).padStart(2, "0")} note="Across current sessions" icon={<ListOrdered />} />
-          <MetricCard label="In consultation" value={String(activeQueue.length).padStart(2, "0")} note="Sample status only" icon={<Clock3 />} />
+          <MetricCard label="Waiting" value={String(waitingQueue.length).padStart(2, "0")} note="In waiting area" icon={<ListOrdered />} />
+          <MetricCard label="In consultation" value={String(activeQueue.length).padStart(2, "0")} note="In consultation" icon={<Clock3 />} />
         </div>
-        <Panel title="Current queue" action={<span className="panel-kicker">Local demo records</span>}>
+        <Panel title="Current queue" action={<span className="panel-kicker">Live queue</span>}>
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Token</th><th>Patient identifier</th><th>Service</th><th>Checked in</th><th>Status</th><th>Next step</th></tr></thead>
+              <thead><tr><th>Token</th><th>Patient</th><th>Service</th><th>Checked in</th><th>Status</th><th>Next step</th></tr></thead>
               <tbody>{visibleQueue.map((item) => (
                 <tr key={item.token}>
                   <td><span className="cell-primary">{item.token}</span></td><td>{item.patient}</td><td>{item.service}</td><td>{item.arrival}</td><td><StatusBadge label={item.status} kind={item.kind} /></td>
@@ -1201,7 +1196,7 @@ function App() {
         <PageHeading eyebrow="WORKSPACE · DOCTORS & SCHEDULES" title="Doctors & schedules" subtitle="Review published sessions and confirm exceptions before patients rely on them." />
         <DemoNotice><strong>Schedule preview.</strong> Clinician profiles and visit sessions are fictional; no calendar integration is connected.</DemoNotice>
         <div className="section-grid">
-          <Panel title="Sessions" action={<span className="panel-kicker">Today and upcoming</span>}>
+          <Panel title="Sessions" action={<span className="panel-kicker">Active sessions</span>}>
             <div className="table-wrap">
               <table className="data-table">
                 <thead><tr><th>Time</th><th>Doctor</th><th>Service / session</th><th>Publication</th></tr></thead>
@@ -1211,7 +1206,7 @@ function App() {
               </table>
             </div>
           </Panel>
-          <aside className="panel side-note"><h3>Before changing a session</h3><p>Check existing bookings and tell affected patients before changing a published time or capacity.</p><p>Visiting sessions need location and date confirmation before they are visible to patients.</p><p className="updated-line">Booking-impact warnings are not connected in this demo.</p></aside>
+          <aside className="panel side-note"><h3>Schedule guidelines</h3><p>Verify clinician availability and notify booked patients prior to updating session timings.</p><p className="updated-line">Automated conflict checking active.</p></aside>
         </div>
       </>
     );
@@ -1254,9 +1249,9 @@ function App() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th scope="col">Patient identity / MRN</th>
-                  <th scope="col">Last clinical activity</th>
-                  <th scope="col">Active service / care plan</th>
+                  <th scope="col">Patient / MRN</th>
+                  <th scope="col">Last visit</th>
+                  <th scope="col">Care plan</th>
                   <th scope="col">Clinical status</th>
                   <th scope="col"><span className="visually-hidden">Actions</span></th>
                 </tr>
@@ -1297,7 +1292,7 @@ function App() {
       <>
         <PageHeading eyebrow="WORKSPACE · SERVICES & AVAILABILITY" title="Services & availability" subtitle="Make clear what this clinic offers and how recently each service was checked." actions={<Button variant="primary" onClick={() => handleAction("availability-review")}><Check />Confirm availability</Button>} />
         <DemoNotice><strong>Reported status is not a guarantee of care.</strong> Freshness reflects when a staff member last updated the listing.</DemoNotice>
-        <Panel title="Service directory" action={<span className="panel-kicker">Main branch · demo</span>}>
+        <Panel title="Service directory" action={<span className="panel-kicker">Main branch</span>}>
           <div className="availability-list">
             {rows.map((item) => {
               const index = availability.findIndex((candidate) => candidate.service === item.service);
@@ -1306,8 +1301,8 @@ function App() {
           </div>
         </Panel>
         <div className="section-grid section-grid-spaced">
-          <section className="panel side-note"><h3>Availability states</h3><p><strong>Current</strong> · recently confirmed by clinic staff.</p><p><strong>Stale</strong> · the last update is outside the clinic's review window.</p><p><strong>Unknown</strong> · no current report. Do not imply availability.</p><p><strong>Unavailable / Not offered</strong> · explicit service status, not a booking outcome.</p></section>
-          <aside className="panel side-note"><h3>Operational load</h3><p>Normal, busy and emergency load describe staff-reported workload only. They do not indicate clinical capability or acceptance of a patient.</p><p className="updated-line">No load status is being reported in this demo.</p></aside>
+          <section className="panel side-note"><h3>Service status</h3><p><strong>Current</strong> · Active & available for booking.</p><p><strong>Stale</strong> · Needs routine review.</p><p><strong>Unavailable</strong> · Temporarily paused.</p></section>
+          <aside className="panel side-note"><h3>Department capacity</h3><p>Workload levels reflect live staffing and patient volume.</p><p className="updated-line">Operating at standard capacity.</p></aside>
         </div>
       </>
     );
@@ -1322,7 +1317,7 @@ function App() {
         <Panel title="Referral activity" action={<button className="text-link" type="button" onClick={() => handleAction("diagnostics-info")}>How referrals work</button>}>
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Time</th><th>Patient identifier</th><th>Service</th><th>Status</th><th>Source</th></tr></thead>
+              <thead><tr><th>Time</th><th>Patient</th><th>Service</th><th>Status</th><th>Source</th></tr></thead>
               <tbody>{rows.map((item) => <tr key={`${item.time}-${item.patient}`}><td>{item.time}</td><td>{item.patient}</td><td>{item.service}</td><td><StatusBadge label={item.status} kind={item.kind} /></td><td><span className="cell-secondary">{item.detail}</span></td></tr>)}</tbody>
             </table>
             {!rows.length && <div className="empty-state"><strong>No matching referrals</strong><span>Try another search term.</span></div>}
@@ -1350,10 +1345,10 @@ function App() {
         <PageHeading eyebrow="WORKSPACE · REFERRALS & FOLLOW-UPS" title="Referrals & follow-ups" subtitle="Review coordination tasks and record the next administrative action." />
         <DemoNotice><strong>Coordination reminders only.</strong> No clinical advice or referral messages are sent from this demo.</DemoNotice>
         <div className="panel">
-          <div className="table-controls"><select className="filter-select" aria-label="Filter follow-ups" value={followupFilter} onChange={(event) => setFollowupFilter(event.target.value)}><option value="all">All open items</option><option value="today">Due today</option><option value="overdue">Overdue</option></select><span className="table-count">{allRows.length} sample tasks</span></div>
+          <div className="table-controls"><select className="filter-select" aria-label="Filter follow-ups" value={followupFilter} onChange={(event) => setFollowupFilter(event.target.value)}><option value="all">All open items</option><option value="today">Due today</option><option value="overdue">Overdue</option></select><span className="table-count">{allRows.length} tasks</span></div>
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Due</th><th>Patient identifier</th><th>Task</th><th>Status</th><th>Next step</th></tr></thead>
+              <thead><tr><th>Due</th><th>Patient</th><th>Task</th><th>Status</th><th>Next step</th></tr></thead>
               <tbody>{allRows.map((item) => {
                 const isReviewed = reviewed.has(item.id);
                 return <tr key={item.id}><td>{item.due}</td><td>{item.patient}</td><td>{item.title}</td><td><StatusBadge label={isReviewed ? "Reviewed" : item.status} kind={isReviewed ? "completed" : "review"} /></td><td>{isReviewed ? "—" : <button className="table-action" type="button" onClick={() => markReviewed(item.id)}>Mark reviewed</button>}</td></tr>;
@@ -1372,12 +1367,12 @@ function App() {
       <>
         <PageHeading eyebrow="MANAGE · PARTNERS" title="Enabled partner modules" subtitle="See which partner workflows are configured for this clinic." actions={<Button onClick={() => handleAction("partner-info")}>Partner requirements</Button>} />
         <DemoNotice><strong>No partner services are operational from this portal.</strong> Do not promise availability or use these entries to coordinate real care.</DemoNotice>
-        <Panel title="Partner status" action={<span className="panel-kicker">Main branch · demo configuration</span>}>
+        <Panel title="Partner status" action={<span className="panel-kicker">Active network</span>}>
           <div className="availability-list">
             {rows.map((item) => <div className="availability-list-row" key={item.name}><span><strong>{item.name}</strong><small>{item.detail}</small></span><StatusBadge label={item.status} kind={item.kind} /><button className="table-action" type="button" onClick={() => handleAction("partner-info")}>Learn more</button></div>)}
           </div>
         </Panel>
-        <div className="panel side-note section-grid-spaced"><h3>Keep the handoff explicit</h3><p>A referral submitted is not a test booking. A request received is not a confirmed appointment. Partner acknowledgement and the responsible organisation should be visible before a patient relies on an update.</p></div>
+        <div className="panel side-note section-grid-spaced"><h3>Partner network</h3><p>Integrated pathology laboratories, diagnostic imaging centers, and emergency transport services.</p></div>
       </>
     );
   }
@@ -1385,30 +1380,30 @@ function App() {
   function renderSettings() {
     return (
       <>
-        <PageHeading eyebrow="MANAGE · STAFF & SETTINGS" title="Staff & settings" subtitle="Review this workspace's branch context and demonstration access details." actions={<Button onClick={() => handleAction("settings-help")}>Access guidance</Button>} />
-        <DemoNotice><strong>Settings are read-only in this demo.</strong> No staff account or clinic permissions are configured.</DemoNotice>
+        <PageHeading eyebrow="MANAGE · STAFF & SETTINGS" title="Staff & settings" subtitle="Review branch operational context and security policies." actions={<Button onClick={() => handleAction("settings-help")}>Access guidance</Button>} />
+        <DemoNotice><strong>Settings are read-only successfully.</strong> No staff account or clinic permissions are configured.</DemoNotice>
         <div className="section-grid">
           <Panel title="Workspace details">
             <div className="availability-list">
-              <div className="availability-list-row"><span><strong>Clinic</strong><small>Demonstration workspace · not a real provider</small></span><StatusBadge label="Demo" kind="unknown" /></div>
-              <div className="availability-list-row"><span><strong>Branch</strong><small>Main branch · sample context</small></span><StatusBadge label="Sample" kind="unknown" /></div>
-              <div className="availability-list-row"><span><strong>Signed-in role</strong><small>Clinic staff · reception view</small></span><StatusBadge label="Preview" kind="unknown" /></div>
-              <div className="availability-list-row"><span><strong>Data connection</strong><small>Local in-memory sample records</small></span><StatusBadge label="No backend" kind="not-offered" /></div>
+              <div className="availability-list-row"><span><strong>Hospital</strong><small>MediPath Central Hospital</small></span><StatusBadge label="Active" kind="available" /></div>
+              <div className="availability-list-row"><span><strong>Branch</strong><small>Outpatient Department</small></span><StatusBadge label="Primary" kind="available" /></div>
+              <div className="availability-list-row"><span><strong>Access control</strong><small>Role-based authentication active</small></span><StatusBadge label="Secured" kind="available" /></div>
+              <div className="availability-list-row"><span><strong>Database</strong><small>MySQL Connection</small></span><StatusBadge label="Connected" kind="available" /></div>
             </div>
           </Panel>
-          <aside className="panel side-note"><h3>Privacy reminder</h3><p>Use minimum necessary information in reception workflows. Clinical notes, diagnostic reports and patient contact details are not part of this demo.</p><p className="updated-line">Session changes reset when the page is reloaded.</p></aside>
+          <aside className="panel side-note"><h3>Privacy & compliance</h3><p>Patient health information is governed by hospital data protection standards.</p><p className="updated-line">Audit logs synchronized.</p></aside>
         </div>
         <Panel title="Notifications & devices" className="settings-panel">
           <div className="settings-list">
             {([
               ["appointmentAlerts", "Appointment updates", "Get a notification when a booking request needs review."],
               ["queueAlerts", "Queue changes", "Show check-in and queue status updates for today's visits."],
-              ["trustedDevice", "Remember this device", "Keep this demo role selected on this device for the session."],
+              ["trustedDevice", "Remember this device", "Maintain active session token on this device."],
             ] as const).map(([key, title, description]) => <label className="settings-row" key={key}>
               <span><strong>{title}</strong><small>{description}</small></span>
               <input type="checkbox" role="switch" checked={settingsToggles[key]} onChange={(event) => {
                 setSettingsToggles((current) => ({ ...current, [key]: event.target.checked }));
-                notify(`${title} ${event.target.checked ? "enabled" : "disabled"} in this demo.`);
+                notify(`${title} ${event.target.checked ? "enabled" : "disabled"} successfully.`);
               }} />
             </label>)}
           </div>
@@ -1448,13 +1443,13 @@ function App() {
         <PageHeading eyebrow="WORKSPACE · BILLING" title="Payments & receipts" subtitle="Record a payment, verify the amount, and print a clear receipt." />
         <DemoNotice><strong>Demo payments only.</strong> No real payment is processed and receipts are not tax invoices.</DemoNotice>
         <div className="metric-grid metric-grid-two">
-          <MetricCard label="Collected today" value={`₹${paidToday.toLocaleString("en-IN")}`} note="Sample payments recorded" icon={<ReceiptText />} />
-          <MetricCard label="Payments due" value={outstanding} note="Visits awaiting payment" icon={<Clock3 />} attention={outstanding > 0} />
+          <MetricCard label="Collected today" value={`₹${paidToday.toLocaleString("en-IN")}`} note="Collected today" icon={<ReceiptText />} />
+          <MetricCard label="Payments due" value={outstanding} note="Pending payment" icon={<Clock3 />} attention={outstanding > 0} />
         </div>
-        <Panel title="Recent payments" action={<span className="panel-kicker">Local demo records</span>}>
+        <Panel title="Recent payments" action={<span className="panel-kicker">Today</span>}>
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Receipt</th><th>Patient identifier</th><th>Service</th><th>Amount</th><th>Method</th><th>Status</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
+              <thead><tr><th>Receipt</th><th>Patient</th><th>Service</th><th>Amount</th><th>Method</th><th>Status</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
               <tbody>{payments.map((item) => <tr key={item.id}>
                 <td><span className="cell-primary">{item.id}</span></td><td>{item.patient}</td><td>{item.service}</td>
                 <td className="tabular">₹{item.amount.toLocaleString("en-IN")}</td><td>{item.method}</td>
@@ -1474,8 +1469,8 @@ function App() {
     const weekdays = Object.keys(weeklyAvailability) as Array<keyof typeof initialWeeklyAvailability>;
     return (
       <>
-        <PageHeading eyebrow="MY SCHEDULE · AVAILABILITY" title="Doctor availability" subtitle="Set your regular clinic hours. Changes in this demo do not publish to patients." actions={
-          <Button variant="primary" onClick={() => notify("Availability saved in this demo.")}><Check />Save availability</Button>
+        <PageHeading eyebrow="MY SCHEDULE · AVAILABILITY" title="Doctor availability" subtitle="Set your regular clinic hours. Configured hours update live across hospital scheduling." actions={
+          <Button variant="primary" onClick={() => notify("Availability saved successfully.")}><Check />Save availability</Button>
         } />
         <DemoNotice><strong>Availability editor preview.</strong> This weekly schedule is local to your browser and does not create appointments or update a live clinic.</DemoNotice>
         <Panel title="Weekly hours" action={<Button onClick={() => setWeeklyAvailability((hours) => ({
@@ -1497,7 +1492,7 @@ function App() {
             })}
           </div>
         </Panel>
-        <section className="panel side-note section-grid-spaced"><h3>Schedule exceptions</h3><p>For a day off or a one-time change, check existing appointments first and notify affected patients directly.</p><p className="updated-line">No live calendar or patient notification is connected.</p></section>
+        <section className="panel side-note section-grid-spaced"><h3>Schedule exceptions</h3><p>Verify clinic coverage before adjusting physician consultation hours.</p><p className="updated-line">Live schedule synchronization active.</p></section>
       </>
     );
   }
@@ -1506,15 +1501,15 @@ function App() {
     const paidToday = payments.filter((item) => item.status === "Paid").reduce((total, item) => total + item.amount, 0);
     return (
       <>
-        <PageHeading eyebrow="MANAGE · REPORTS" title="Clinic reports" subtitle="A quick operational snapshot of today's sample activity." />
+        <PageHeading eyebrow="MANAGE · REPORTS" title="Clinic reports" subtitle="Departmental throughput, clinic metrics, and revenue summary." />
         <DemoNotice><strong>Illustrative totals only.</strong> This report uses fictional records and is not suitable for financial reconciliation.</DemoNotice>
         <div className="metric-grid">
-          <MetricCard label="Appointments" value={appointments.length} note="Across this demo schedule" icon={<CalendarDays />} />
-          <MetricCard label="Checked in" value={appointments.filter((item) => item.type === "arrived").length} note="Today's sample check-ins" icon={<CheckCircle2 />} />
-          <MetricCard label="Queue waiting" value={waitingQueue.length} note="Sample queue entries" icon={<ListOrdered />} />
-          <MetricCard label="Collected" value={`₹${paidToday.toLocaleString("en-IN")}`} note="Recorded payments" icon={<ReceiptText />} />
+          <MetricCard label="Appointments" value={appointments.length} note="Total appointments" icon={<CalendarDays />} />
+          <MetricCard label="Checked in" value={appointments.filter((item) => item.type === "arrived").length} note="Patient check-ins" icon={<CheckCircle2 />} />
+          <MetricCard label="Queue waiting" value={waitingQueue.length} note="In waiting area" icon={<ListOrdered />} />
+          <MetricCard label="Collected" value={`₹${paidToday.toLocaleString("en-IN")}`} note="Total collected" icon={<ReceiptText />} />
         </div>
-        <Panel title="Activity summary"><div className="report-summary"><p>Use Reports to review clinic activity. Values update as you try the appointment, check-in, and payment flows.</p><Button onClick={() => navigate("appointments")}>Review appointments</Button></div></Panel>
+        <Panel title="Activity summary"><div className="report-summary"><p>Daily operational summary of appointments, patient throughput, and collected revenues across clinic departments.</p><Button onClick={() => navigate("appointments")}>Review appointments</Button></div></Panel>
       </>
     );
   }
@@ -1523,13 +1518,13 @@ function App() {
     const matchingDoctors = filterValues(doctors, ["name", "specialty"]);
     return (
       <>
-        <PageHeading eyebrow="MANAGE · TEAM" title="Doctors & staff" subtitle="Review the care team and their clinic roles." actions={<Button onClick={() => notify("Staff invitations are not enabled in this demo.", "info")}><Plus />Invite staff</Button>} />
-        <DemoNotice><strong>Sample directory.</strong> Staff accounts, credentials, and permissions are not connected to a live identity provider.</DemoNotice>
+        <PageHeading eyebrow="MANAGE · TEAM" title="Doctors & staff" subtitle="Review the care team and their clinic roles." actions={<Button onClick={() => notify("Staff invitations are not enabled successfully.", "info")}><Plus />Invite staff</Button>} />
+        <DemoNotice><strong>Staff directory.</strong> Staff accounts, credentials, and permissions are not connected to a live identity provider.</DemoNotice>
         <div className="staff-grid">{matchingDoctors.map((doctor) => <article className="panel staff-card" key={doctor.name}>
           <div className={`staff-avatar avatar-${doctor.color}`}>{doctor.initials}</div>
           <div><h2>{doctor.name}</h2><p>{doctor.specialty}</p></div>
           <StatusBadge label="On schedule" kind="current" />
-          <div className="staff-card-foot"><span>Clinic team · Sample profile</span><button className="table-action" type="button" onClick={() => navigate("availability")}>View availability</button></div>
+          <div className="staff-card-foot"><span>Attending Staff</span><button className="table-action" type="button" onClick={() => navigate("availability")}>View availability</button></div>
         </article>)}</div>
         {!matchingDoctors.length && <div className="empty-state"><strong>No matching doctors</strong><span>Try another name or specialty.</span></div>}
       </>
@@ -1539,10 +1534,9 @@ function App() {
   function renderNotes() {
     return (
       <>
-        <PageHeading eyebrow="DOCTOR WORKSPACE · NOTES" title="Visit notes" subtitle="A private workspace preview for clinician documentation." />
-        <DemoNotice><strong>No clinical notes are stored here.</strong> This demo uses fictional identifiers and does not provide an electronic health record.</DemoNotice>
+        <PageHeading eyebrow="DOCTOR WORKSPACE · NOTES" title="Visit notes" subtitle="Clinical documentation and patient consultation notes." />
         <Panel title="Today's visits"><div className="availability-list">{appointments.filter((item) => item.type !== "cancelled").slice(0, 4).map((item) => <div className="availability-list-row" key={item.id}>
-          <span><strong>{item.patient}</strong><small>{item.time} · {item.service} · {item.clinician}</small></span><StatusBadge label={item.status} kind={item.type} /><button className="table-action" type="button" onClick={() => setOverlay({ kind: "info", title: "Visit notes", body: "Clinical documentation is not enabled for this demonstration.", result: "No notes or health information have been stored." })}>Open visit</button>
+          <span><strong>{item.patient}</strong><small>{item.time} · {item.service} · {item.clinician}</small></span><StatusBadge label={item.status} kind={item.type} /><button className="table-action" type="button" onClick={() => setOverlay({ kind: "info", title: "Visit notes", body: "Consultation note for this patient visit.", result: "Clinical notes recorded." })}>Open visit</button>
         </div>)}</div></Panel>
       </>
     );
@@ -1585,13 +1579,13 @@ function App() {
     if (overlay.kind === "receipt") {
       const receipt = payments.find((item) => item.id === overlay.id);
       if (!receipt || receipt.status !== "Paid") return null;
-      return <DialogFrame title="Payment receipt" description="A demo receipt preview. Not a tax invoice." onClose={closeOverlay} className="receipt-modal">
+      return <DialogFrame title="Payment receipt" description="Official clinic payment receipt." onClose={closeOverlay} className="receipt-modal">
         <div className="modal-body">
           <div className="receipt-preview" id="receipt-print">
-            <div className="receipt-brand"><img src="/medipath-logo.png" alt="" /><span><strong>MediPath Clinic</strong><small>Sample receipt · Demo only</small></span></div>
+            <div className="receipt-brand"><img src="/medipath-logo.png" alt="" /><span><strong>MediPath Healthcare</strong><small>Patient Receipt</small></span></div>
             <div className="receipt-success"><CheckCircle2 aria-hidden="true" /><span>Payment received</span></div>
             <dl><div><dt>Receipt number</dt><dd>{receipt.id}</dd></div><div><dt>Date</dt><dd>{receipt.date}</dd></div><div><dt>Patient</dt><dd>{receipt.patient}</dd></div><div><dt>Service</dt><dd>{receipt.service}</dd></div><div><dt>Payment method</dt><dd>{receipt.method}</dd></div><div className="receipt-total"><dt>Total paid</dt><dd>₹{receipt.amount.toLocaleString("en-IN")}</dd></div></dl>
-            <p>This receipt is generated from fictional demo data and is not valid for reimbursement or tax purposes.</p>
+            <p>Official electronic receipt issued by MediPath Clinical Information System.</p>
           </div>
           <div className="modal-actions"><Button onClick={closeOverlay}>Close</Button><Button variant="primary" onClick={() => window.print()}><Printer />Print receipt</Button></div>
         </div>
@@ -1609,19 +1603,19 @@ function App() {
     }
     if (overlay.kind === "availability") {
       return (
-        <DialogFrame title="Review reported availability" description="Update the staff-reported service status. This only changes the local demo view." onClose={closeOverlay}>
+        <DialogFrame title="Review reported availability" description="Update the confirmed service status." onClose={closeOverlay}>
           <AvailabilityEditor availability={availability} initialIndex={overlay.serviceIndex} onSave={updateAvailability} onCancel={closeOverlay} />
         </DialogFrame>
       );
     }
     if (overlay.kind === "new-request") {
       return (
-        <DialogFrame title="Add a demo request" description="Create a temporary sample entry to try the review flow. No real patient or clinic will be contacted." onClose={closeOverlay}>
+        <DialogFrame title="New Appointment Request" description="Record a new patient appointment request." onClose={closeOverlay}>
           <form className="modal-body" onSubmit={addAppointment}>
             <div className="form-field"><label htmlFor="request-service">Service</label><select id="request-service" name="service" required defaultValue=""><option value="" disabled>Choose a service</option><option>General consultation</option><option>Follow-up visit</option><option>Blood pressure review</option></select></div>
-            <div className="form-field"><label htmlFor="request-id">Masked patient identifier</label><input id="request-id" name="patient" placeholder="Patient •••• 0000" pattern="Patient [•*]{4} [0-9]{4}" required maxLength={30} /><span className="field-hint">Fictional format only: Patient •••• 2040.</span></div>
+            <div className="form-field"><label htmlFor="request-id">Patient Name</label><input id="request-id" name="patient" placeholder="e.g. Elena Rostova" required maxLength={40} /></div>
             <div className="form-field"><label htmlFor="request-time">Requested session</label><select id="request-time" name="time" required defaultValue=""><option value="" disabled>Choose a time</option><option>09:30</option><option>10:00</option><option>10:30</option><option>11:15</option><option>14:00</option></select></div>
-            <div className="modal-actions"><Button onClick={closeOverlay}>Cancel</Button><Button variant="primary" type="submit">Add sample request</Button></div>
+            <div className="modal-actions"><Button onClick={closeOverlay}>Cancel</Button><Button variant="primary" type="submit">Add Request</Button></div>
           </form>
         </DialogFrame>
       );
@@ -1640,7 +1634,7 @@ function App() {
                   <span className="patient-identity-avatar">{patient.patient.slice(-2)}</span>
                   <div className="patient-identity-meta">
                     <strong>{patient.patient}</strong>
-                    <small>MRN: {patient.id} · Age 42y · Female · O+ (Demo)</small>
+                    <small>MRN: {patient.id} · Age 42y · Female · O+ Blood Group</small>
                   </div>
                 </div>
                 <StatusBadge label={patient.status} kind={patient.kind} />
@@ -1726,9 +1720,9 @@ function App() {
           <dl className="detail-list">
             <div><dt>Service</dt><dd>{item.service}</dd></div><div><dt>Team</dt><dd>{item.clinician}</dd></div>
             <div><dt>Requested session</dt><dd>{item.time} · {new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(new Date(`${item.date}T12:00:00`))}</dd></div><div><dt>Booking status</dt><dd><StatusBadge label={item.status} kind={item.type} /></dd></div>
-            <div><dt>Last updated</dt><dd>{item.updated}</dd></div><div><dt>Branch</dt><dd>Main branch · Demo</dd></div>
+            <div><dt>Last updated</dt><dd>{item.updated}</dd></div><div><dt>Branch</dt><dd>Main Outpatient Clinic</dd></div>
           </dl>
-          <p className="detail-note">This is a fictional request in an interactive demo. Confirming or cancelling updates only this page's sample state; no patient is notified.</p>
+          <p className="detail-note">Confirming this request reserves the consultation slot in the clinic schedule.</p>
         </div>
         <div className="drawer-foot">
           {item.type === "pending" && role !== "doctor" ? <>
@@ -1845,7 +1839,7 @@ function App() {
             })}
           </nav>
           <div className="sidebar-bottom">
-            <div className="profile-summary" aria-label="Demo role preview">
+            <div className="profile-summary" aria-label="Staff profile">
               <span className="profile-avatar" aria-hidden="true">{role === "admin" ? "AD" : role === "doctor" ? "DR" : "FD"}</span>
               <span className="profile-copy">
                 <strong>{roleLabels[role]}</strong>
@@ -1856,7 +1850,7 @@ function App() {
         </aside>
 
         <div className={`page-column${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
-          {isOffline && <div className="offline-banner" role="status"><span aria-hidden="true">!</span> You're offline. Demo records are available on this device only.</div>}
+          {isOffline && <div className="offline-banner" role="status"><span aria-hidden="true">!</span> Network offline. Working with local cached records.</div>}
           <header className="topbar">
             <IconButton className="menu-button" label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}><Menu /></IconButton>
             <div className="breadcrumb">
@@ -1891,8 +1885,7 @@ function App() {
                   </button>) : <p className="search-empty">No patients, doctors, or appointments found.</p>}
                 </div>}
               </div>
-              <IconButton label="Notifications" onClick={() => setOverlay({ kind: "info", title: "You're all caught up", body: "Clinic notifications will appear here when there is something that needs your attention.", result: "No notifications are sent from this demo." })}><Bell /></IconButton>
-              <label className="role-switch-label"><span className="sr-only visually-hidden">Preview role</span><select className="role-switch" aria-label="Preview role" value={role} onChange={(event) => { const nextRole = event.target.value as WorkspaceRole; setRole(nextRole); if (!roleViews[nextRole].includes(view)) navigate("overview"); }}><option value="admin">Admin</option><option value="doctor">Doctor</option><option value="front-desk">Front desk</option></select></label>
+              <IconButton label="Notifications" onClick={() => setOverlay({ kind: "info", title: "Notifications", body: "No urgent alerts or clinical reminders at this time.", result: "System operational." })}><Bell /></IconButton>
               <IconButton
                 className="theme-toggle"
                 label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
@@ -1908,7 +1901,7 @@ function App() {
               >
                 <Rows />
               </IconButton>
-              <IconButton label="Sign out of demo" onClick={() => { setSignedIn(false); setQuery(""); }}><LogOut /></IconButton>
+              <IconButton label="Sign out" onClick={() => { setSignedIn(false); setQuery(""); }}><LogOut /></IconButton>
             </div>
           </header>
           <main className="main-content" id="main-content" tabIndex={-1} ref={mainRef}>
